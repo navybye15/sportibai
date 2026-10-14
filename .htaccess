@@ -1,0 +1,5 @@
+# Sportibai Root Apache Configuration
+ErrorDocument 404 /sportibai/404.php
+
+# Prevent directory indexing
+Options -Indexes

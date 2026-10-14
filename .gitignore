@@ -1,0 +1,10 @@
+# Ignore local database and mail credentials
+config/db_config.php
+config/mail_config.php
+
+# Ignore logs
+logs/*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db

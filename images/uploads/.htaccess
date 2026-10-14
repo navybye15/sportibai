@@ -1,0 +1,13 @@
+# Block execution of PHP scripts inside images/uploads directory
+<FilesMatch "(?i)\.(php|phtml|php3|php4|php5|php7|phps|inc|cgi|pl|py)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Fallback: disable script engine
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
