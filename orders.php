@@ -42,6 +42,70 @@ if ($conn != null && count($orders) > 0) {
     }
 }
 
+// ── Handle Review Submission from Orders page (MP4) ─────────────────────────
+if (isset($_POST['submit_review'])) {
+    if (!csrf_verify()) {
+        header('Location: orders.php?tab=completed');
+        exit;
+    }
+    $item_id = (int)($_POST['item_id'] ?? 0);
+    $rating  = (int)($_POST['rating'] ?? 0);
+    $comment = strip_tags(trim($_POST['comment'] ?? ''));
+
+    if ($rating < 1 || $rating > 5) {
+        $_SESSION['message'] = 'Please choose a star rating (1 to 5 stars).';
+        header('Location: orders.php?tab=completed');
+        exit;
+    }
+
+    // Verify user actually purchased and completed order with this item
+    $verify_sql = "SELECT oi.order_item_id 
+                   FROM order_items oi
+                   JOIN orders o ON oi.order_id = o.order_id
+                   JOIN customer c ON o.customer_id = c.customer_id
+                   WHERE c.user_id = ? AND oi.item_id = ? AND o.status = 'Completed'
+                   LIMIT 1";
+    $v_res = mysqli_execute_query($conn, $verify_sql, array($_SESSION['user_id'], $item_id));
+    if (mysqli_num_rows($v_res) > 0) {
+        $review_img = '';
+        if (isset($_FILES['review_image']) && $_FILES['review_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+            try {
+                $review_img = handle_review_image($_FILES['review_image']);
+            } catch (Exception $e) {
+                $_SESSION['message'] = $e->getMessage();
+                header('Location: orders.php?tab=completed');
+                exit;
+            }
+        }
+
+        if ($review_img !== '') {
+            $ins_sql = "INSERT INTO reviews (item_id, user_id, rating, comment, review_image)
+                        VALUES (?, ?, ?, ?, ?)
+                        ON DUPLICATE KEY UPDATE rating = VALUES(rating), comment = VALUES(comment), review_image = VALUES(review_image), updated_at = NOW()";
+            mysqli_execute_query($conn, $ins_sql, array($item_id, $_SESSION['user_id'], $rating, $comment, $review_img));
+        } else {
+            $ins_sql = "INSERT INTO reviews (item_id, user_id, rating, comment)
+                        VALUES (?, ?, ?, ?)
+                        ON DUPLICATE KEY UPDATE rating = VALUES(rating), comment = VALUES(comment), updated_at = NOW()";
+            mysqli_execute_query($conn, $ins_sql, array($item_id, $_SESSION['user_id'], $rating, $comment));
+        }
+        $_SESSION['success'] = 'Your review has been published! Thank you for sharing athlete feedback.';
+    } else {
+        $_SESSION['message'] = 'You can only review items from completed orders.';
+    }
+    header('Location: orders.php?tab=completed');
+    exit;
+}
+
+// ── Fetch existing reviews by this customer ──────────────────────────────────
+$user_reviews = array();
+if ($conn != null) {
+    $rev_res = mysqli_execute_query($conn, "SELECT item_id, rating, comment, review_image FROM reviews WHERE user_id = ?", array($_SESSION['user_id']));
+    while ($rw = mysqli_fetch_assoc($rev_res)) {
+        $user_reviews[$rw['item_id']] = $rw;
+    }
+}
+
 // ── Tab counts ───────────────────────────────────────────────────────────────
 $tab_counts = array('all' => 0, 'topay' => 0, 'toreceive' => 0, 'completed' => 0, 'cancelled' => 0);
 foreach ($orders as $o) {
@@ -159,6 +223,23 @@ require 'includes/header.php';
             <!-- Actions -->
             <div class="order-card-actions">
                 <a href="order_detail.php?id=<?= $o['order_id'] ?>" class="btn ghost sm">View Details</a>
+                <a href="download_receipt.php?order_id=<?= $o['order_id'] ?>" target="_blank" class="btn ghost sm" style="font-size:11px;">📄 PDF Receipt</a>
+                
+                <?php if ($o['status'] === 'Completed') { 
+                    $items_in_order = $order_items[$o['order_id']] ?? array();
+                    $all_reviewed = true;
+                    foreach ($items_in_order as $it_chk) {
+                        if (!isset($user_reviews[$it_chk['item_id']])) {
+                            $all_reviewed = false;
+                            break;
+                        }
+                    }
+                ?>
+                    <button type="button" class="btn sm" onclick='openReviewModal(<?= htmlspecialchars(json_encode($items_in_order), ENT_QUOTES, "UTF-8") ?>)' style="background:rgba(245,158,11,0.2); color:#f59e0b; border:1px solid rgba(245,158,11,0.45); font-size:11px; box-shadow:0 0 10px rgba(245,158,11,0.2);">
+                        <?= $all_reviewed ? '✓ Reviewed (Edit)' : '⭐ Review Gear' ?>
+                    </button>
+                <?php } ?>
+
                 <?php if ($can_receive) { ?>
                     <form method="POST" action="receive_order.php" style="display:inline;">
                         <?= csrf_field() ?>
@@ -190,4 +271,186 @@ require 'includes/header.php';
     <?php } ?>
     </div>
 </section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     INTERACTIVE 5-STAR REVIEW MODAL (MP4)
+═══════════════════════════════════════════════════════════════════════════ -->
+<div id="review-modal-backdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center; padding:1.25rem;">
+    <div class="card in" style="max-width:520px; width:100%; max-height:90vh; overflow-y:auto; background:#12151c; border:1px solid rgba(255,255,255,0.15); border-radius:16px; padding:1.75rem; box-shadow:0 25px 60px rgba(0,0,0,0.8); position:relative;">
+        <button type="button" onclick="closeReviewModal()" style="position:absolute; top:16px; right:16px; background:transparent; border:none; color:#888; font-size:1.5rem; cursor:pointer; line-height:1;">✕</button>
+
+        <div>
+            <div class="hero-eyebrow">[ ATHLETE FEEDBACK ]</div>
+            <h2 style="font-size:1.35rem; margin-top:4px;">Rate &amp; Review Your Gear</h2>
+            <p class="muted" style="font-size:13px; margin-top:2px;">Your feedback helps other athletes choose the right gear.</p>
+        </div>
+
+        <!-- Item Selector if order has multiple items -->
+        <div id="modal-item-selector-container" style="display:none; margin-top:1rem;">
+            <label class="form-label" style="font-size:11px;">Select Item to Review:</label>
+            <select id="modal-item-dropdown" class="search" style="width:100%; margin-top:4px; padding:0.5rem 0.75rem; font-size:13px;" onchange="onSelectItemToReview(this.value)">
+            </select>
+        </div>
+
+        <!-- Selected Item Preview Card -->
+        <div style="display:flex; align-items:center; gap:12px; padding:0.75rem 1rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; margin-top:1.25rem;">
+            <img id="modal-item-img" src="images/placeholder.svg" alt="" style="width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.1); flex-shrink:0;">
+            <div>
+                <div id="modal-item-name" style="font-weight:700; font-size:14px; color:var(--color-fg);"></div>
+                <div id="modal-item-price" class="muted" style="font-size:12px; margin-top:2px;"></div>
+            </div>
+        </div>
+
+        <form method="POST" action="orders.php" enctype="multipart/form-data" novalidate style="margin-top:1.25rem;">
+            <?= csrf_field() ?>
+            <input type="hidden" name="item_id" id="modal-hidden-item-id" value="">
+
+            <!-- Interactive 5-Star Rating Widget (Required) -->
+            <div style="margin-bottom:1.25rem;">
+                <label class="form-label" style="display:block; margin-bottom:6px;">Your Rating <span style="color:#ff9f96;">*</span></label>
+                <div id="modal-star-picker" style="display:inline-flex; gap:8px; cursor:pointer; font-size:2rem; user-select:none;">
+                    <?php for ($s = 1; $s <= 5; $s++) { ?>
+                        <span class="modal-star-btn" data-val="<?= $s ?>" style="color:#f59e0b; transition:color 0.15s, transform 0.15s; text-shadow:0 0 12px rgba(245,158,11,0.5);">★</span>
+                    <?php } ?>
+                </div>
+                <input type="hidden" name="rating" id="modal-rating-input" value="5">
+                <span id="modal-rating-label" class="muted" style="font-size:13px; margin-left:12px; font-weight:600; vertical-align:middle;">5 / 5 Stars</span>
+            </div>
+
+            <!-- Optional Review Text Comment -->
+            <div style="margin-bottom:1.25rem;">
+                <label class="form-label" style="display:block; margin-bottom:6px;">Review Comment <span class="muted" style="font-weight:400; font-size:11px;">(Optional)</span></label>
+                <textarea name="comment" id="modal-comment-input" rows="3" placeholder="Share your experience: grip, bounce, durability, fit, packaging..." style="width:100%;"></textarea>
+            </div>
+
+            <!-- Optional Photo Upload -->
+            <div style="margin-bottom:1.5rem;">
+                <label class="form-label" style="display:block; margin-bottom:6px;">Attach Product Photo <span class="muted" style="font-weight:400; font-size:11px;">(Optional)</span></label>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <input type="file" name="review_image" id="modal_review_photo_input" accept=".jpg,.jpeg,.png,.webp" style="display:none;" onchange="document.getElementById('modal_review_photo_name').innerText = this.files[0] ? this.files[0].name : '';">
+                    <button type="button" class="btn ghost sm" onclick="document.getElementById('modal_review_photo_input').click();">📷 Choose Photo</button>
+                    <span id="modal_review_photo_name" class="muted" style="font-size:12px;"></span>
+                </div>
+                <small class="muted" style="font-size:11px; display:block; margin-top:4px;">JPG, PNG, or WEBP (Max 3MB)</small>
+            </div>
+
+            <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+                <button type="button" class="btn ghost sm" onclick="closeReviewModal()">Cancel</button>
+                <button type="submit" name="submit_review" class="btn sm" style="background:#51af43; padding:0.65rem 1.5rem;">Publish Review</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+var currentOrderItems = [];
+var userReviewsMap = <?= json_encode($user_reviews) ?>;
+
+function openReviewModal(items) {
+    if (!items || items.length === 0) return;
+    currentOrderItems = items;
+
+    var selectorContainer = document.getElementById('modal-item-selector-container');
+    var dropdown = document.getElementById('modal-item-dropdown');
+
+    if (items.length > 1) {
+        selectorContainer.style.display = 'block';
+        dropdown.innerHTML = '';
+        items.forEach(function(it, idx) {
+            var opt = document.createElement('option');
+            opt.value = idx;
+            opt.innerText = (it.quantity ? it.quantity + 'x ' : '') + it.name;
+            dropdown.appendChild(opt);
+        });
+    } else {
+        selectorContainer.style.display = 'none';
+    }
+
+    populateItemReview(items[0]);
+
+    var backdrop = document.getElementById('review-modal-backdrop');
+    backdrop.style.display = 'flex';
+}
+
+function onSelectItemToReview(index) {
+    var it = currentOrderItems[parseInt(index)];
+    if (it) populateItemReview(it);
+}
+
+function populateItemReview(item) {
+    document.getElementById('modal-hidden-item-id').value = item.item_id;
+    document.getElementById('modal-item-name').innerText = item.name;
+    document.getElementById('modal-item-price').innerText = '₱' + parseFloat(item.price).toFixed(2);
+    
+    var imgSrc = item.image ? ('images/uploads/' + item.image) : 'images/placeholder.svg';
+    document.getElementById('modal-item-img').src = imgSrc;
+
+    // Pre-fill if already reviewed
+    var existing = userReviewsMap[item.item_id];
+    var rating = existing ? parseInt(existing.rating) : 5;
+    var comment = existing ? (existing.comment || '') : '';
+
+    document.getElementById('modal-rating-input').value = rating;
+    document.getElementById('modal-comment-input').value = comment;
+    document.getElementById('modal_review_photo_name').innerText = '';
+    
+    highlightModalStars(rating);
+}
+
+function closeReviewModal() {
+    document.getElementById('review-modal-backdrop').style.display = 'none';
+}
+
+function highlightModalStars(val) {
+    var stars = document.querySelectorAll('.modal-star-btn');
+    var label = document.getElementById('modal-rating-label');
+    stars.forEach(function(star, idx) {
+        var sVal = idx + 1;
+        if (sVal <= val) {
+            star.style.color = '#f59e0b';
+            star.style.textShadow = '0 0 12px rgba(245,158,11,0.55)';
+            star.style.transform = 'scale(1.15)';
+        } else {
+            star.style.color = 'rgba(255,255,255,0.2)';
+            star.style.textShadow = 'none';
+            star.style.transform = 'scale(1)';
+        }
+    });
+    if (label) label.innerText = val + ' / 5 Stars';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var picker = document.getElementById('modal-star-picker');
+    if (!picker) return;
+    var stars = picker.querySelectorAll('.modal-star-btn');
+    var input = document.getElementById('modal-rating-input');
+
+    stars.forEach(function(star) {
+        star.addEventListener('mouseenter', function() {
+            var v = parseInt(this.getAttribute('data-val'));
+            highlightModalStars(v);
+        });
+        star.addEventListener('click', function() {
+            var v = parseInt(this.getAttribute('data-val'));
+            input.value = v;
+            highlightModalStars(v);
+        });
+    });
+
+    picker.addEventListener('mouseleave', function() {
+        var lockedVal = parseInt(input.value) || 5;
+        highlightModalStars(lockedVal);
+    });
+
+    // Auto-open review modal if order just marked received
+    var urlParams = new URLSearchParams(window.location.search);
+    var autoReviewOrderId = urlParams.get('open_review');
+    if (autoReviewOrderId) {
+        var allOrderItems = <?= json_encode($order_items) ?>;
+        if (allOrderItems[autoReviewOrderId]) {
+            openReviewModal(allOrderItems[autoReviewOrderId]);
+        }
+    }
+});
+</script>
 <?php require 'includes/footer.php'; ?>

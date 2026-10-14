@@ -10,6 +10,7 @@ use PHPMailer\PHPMailer\Exception;
 require_once __DIR__ . '/../PHPMailer/src/Exception.php';
 require_once __DIR__ . '/../PHPMailer/src/PHPMailer.php';
 require_once __DIR__ . '/../PHPMailer/src/SMTP.php';
+require_once __DIR__ . '/pdf_receipt.php';
 
 function get_mailer_instance() {
     $mail = new PHPMailer(true);
@@ -218,10 +219,143 @@ function send_order_confirmation_email($order_id, $conn) {
         $mail->Body    = $body;
         $mail->AltBody = "Sportibai order confirmed: {$ref_num}. Total: ₱" . number_format($order['total'], 2);
 
+        // Term Test Lab requirement: Attach PDF transaction receipt
+        $pdf_file = generate_order_receipt_pdf($order_id, $conn);
+        if ($pdf_file && file_exists($pdf_file)) {
+            $mail->addAttachment($pdf_file, "Sportibai_Receipt_{$ref_num}.pdf");
+        }
+
         $mail->send();
+
+        if ($pdf_file && file_exists($pdf_file)) {
+            @unlink($pdf_file);
+        }
+
         return true;
     } catch (Exception $e) {
         log_mail_delivery('MAILER_ERROR', $cust_email, 'Order confirmation error', $mail->ErrorInfo);
         return false;
     }
 }
+
+/**
+ * Send Order Status Update Email to Customer (Term Test Lab Requirement: 35 pts)
+ * Sends updated status, product list, subtotals, grand total, and attached PDF receipt.
+ */
+function send_order_status_update_email($order_id, $new_status, $conn) {
+    if (!$conn) return false;
+
+    // Use Unit 1 MySQL View: vw_order_details
+    $sql = "SELECT * FROM vw_order_details WHERE order_id = ?";
+    $res = mysqli_execute_query($conn, $sql, array($order_id));
+    $items = array();
+    $order = null;
+
+    while ($row = mysqli_fetch_assoc($res)) {
+        if ($order === null) {
+            $order = $row;
+        }
+        $items[] = $row;
+    }
+
+    if (!$order) {
+        // Fallback query if view returned empty (e.g. order with no items)
+        $o_res = mysqli_execute_query($conn, "SELECT o.*, u.email AS customer_email, o.snapshot_name AS customer_name FROM orders o JOIN customer c ON o.customer_id = c.customer_id JOIN users u ON c.user_id = u.user_id WHERE o.order_id = ? LIMIT 1", array($order_id));
+        $order = mysqli_fetch_assoc($o_res);
+        if (!$order) return false;
+    }
+
+    $cust_email = $order['customer_email'];
+    $cust_name  = !empty($order['customer_name']) ? $order['customer_name'] : 'Sportibai Athlete';
+    $ref_num    = $order['reference_number'] ?? ('SB-' . str_pad($order_id, 7, '0', STR_PAD_LEFT));
+    $grand_total = (float)($order['grand_total'] ?? ($order['total'] ?? 0));
+
+    log_mail_delivery('ORDER_STATUS_UPDATE', $cust_email, "Status Update [{$ref_num}] - {$new_status}", "Items: " . count($items) . " | Total: ₱" . number_format($grand_total, 2));
+
+    try {
+        $mail = get_mailer_instance();
+        if (empty($mail->Username)) {
+            return true;
+        }
+
+        $mail->addAddress($cust_email, $cust_name);
+        $mail->isHTML(true);
+        $mail->Subject = "Sportibai Order #{$ref_num} Status: {$new_status}";
+
+        // Itemized product table with subtotals (Term Test Lab requirement)
+        $items_html = '';
+        foreach ($items as $it) {
+            $qty = (int)($it['quantity'] ?? 1);
+            $price = (float)($it['unit_price'] ?? 0);
+            $subtotal = (float)($it['subtotal'] ?? ($qty * $price));
+
+            $items_html .= '
+            <tr style="border-bottom:1px solid #232730;">
+                <td style="padding:10px 0; color:#ffffff; font-size:14px;">
+                    ' . htmlspecialchars($it['item_name']) . '
+                    <span style="display:block; font-size:12px; color:#888;">Qty: ' . $qty . ' × ₱' . number_format($price, 2) . '</span>
+                </td>
+                <td style="padding:10px 0; text-align:right; color:#ffffff; font-size:14px;">
+                    ₱' . number_format($subtotal, 2) . '
+                </td>
+            </tr>';
+        }
+
+        $body = '
+        <div style="background:#111317; color:#f2efe9; padding:32px; font-family:\'Segoe UI\', Tahoma, Geneva, Verdana, sans-serif; border-radius:14px; max-width:540px; margin:0 auto; border:1px solid #232730;">
+            <div style="margin-bottom:20px;">
+                <span style="font-size:20px; font-weight:800; letter-spacing:0.12em; color:#ffffff;">SPORTI<span style="color:#51af43;">BAI</span></span>
+                <span style="display:inline-block; margin-left:8px; font-size:11px; font-weight:700; color:#f59e0b; letter-spacing:0.15em;">[ STATUS NOTIFICATION ]</span>
+            </div>
+            <h2 style="color:#ffffff; font-size:22px; margin:0 0 8px;">Order Status: ' . htmlspecialchars($new_status) . '</h2>
+            <p style="color:#a1a4ad; line-height:1.6; font-size:14px; margin:0 0 20px;">
+                Hi <strong>' . htmlspecialchars($cust_name) . '</strong>, your order <strong>' . htmlspecialchars($ref_num) . '</strong> has been updated to <strong style="color:#51af43;">' . strtoupper(htmlspecialchars($new_status)) . '</strong>.
+            </p>
+            <div style="background:#181b22; border-radius:10px; padding:16px; margin-bottom:20px;">
+                <div style="font-size:12px; color:#888; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px;">Order Details</div>
+                <div style="color:#ffffff; font-size:14px; font-weight:600;">Status: ' . htmlspecialchars($new_status) . '</div>
+                <div style="color:#a1a4ad; font-size:13px; margin-top:4px;">Reference #: ' . htmlspecialchars($ref_num) . '</div>
+            </div>
+            <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+                <thead>
+                    <tr style="border-bottom:1px solid #333; color:#888; font-size:12px; text-transform:uppercase;">
+                        <th style="text-align:left; padding-bottom:8px;">Item Description</th>
+                        <th style="text-align:right; padding-bottom:8px;">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ' . $items_html . '
+                </tbody>
+            </table>
+            <div style="border-top:2px solid #333; padding-top:12px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:16px; font-weight:700; color:#ffffff;">Grand Total:</span>
+                <span style="font-size:18px; font-weight:800; color:#51af43;">₱' . number_format($grand_total, 2) . '</span>
+            </div>
+            <p style="color:#6d7078; font-size:12px; line-height:1.5; margin:24px 0 0; border-top:1px solid #232730; padding-top:16px;">
+                📎 An official PDF copy of your transaction receipt is attached to this email.<br>
+                Thank you for choosing Sportibai for your athletic gear!
+            </p>
+        </div>';
+
+        $mail->Body    = $body;
+        $mail->AltBody = "Sportibai order #{$ref_num} status updated to: {$new_status}. Grand Total: ₱" . number_format($grand_total, 2);
+
+        // Attach PDF Receipt (Term Test Lab requirement)
+        $pdf_file = generate_order_receipt_pdf($order_id, $conn);
+        if ($pdf_file && file_exists($pdf_file)) {
+            $mail->addAttachment($pdf_file, "Sportibai_Receipt_{$ref_num}.pdf");
+        }
+
+        $mail->send();
+
+        if ($pdf_file && file_exists($pdf_file)) {
+            @unlink($pdf_file);
+        }
+
+        return true;
+    } catch (Exception $e) {
+        log_mail_delivery('MAILER_ERROR', $cust_email, 'Order status update error', $mail->ErrorInfo);
+        return false;
+    }
+}
+

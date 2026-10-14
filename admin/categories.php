@@ -112,6 +112,14 @@ $active_cat_count = mysqli_fetch_assoc($res_act)['c'] ?? 0;
 $res_arc = mysqli_query($conn, "SELECT COUNT(*) AS c FROM categories WHERE is_active = 0");
 $archived_cat_count = mysqli_fetch_assoc($res_arc)['c'] ?? 0;
 
+$item_counts = array();
+$res_counts = mysqli_query($conn, "SELECT category_id, COUNT(*) AS cnt FROM items WHERE is_active = 1 GROUP BY category_id");
+if ($res_counts) {
+    while ($r = mysqli_fetch_assoc($res_counts)) {
+        $item_counts[$r['category_id']] = (int)$r['cnt'];
+    }
+}
+
 $base = '../';
 $page_title = 'Manage Categories | Sportibai';
 require '../includes/header.php';
@@ -147,41 +155,64 @@ require '../includes/header.php';
     </form>
     <?php } ?>
 
-    <div class="lines" style="padding-top:1rem;">
-        <div class="rail-section-title" style="margin-bottom:0.5rem;">
-            <?= $is_archived_view ? 'Archived Categories' : 'Existing Categories' ?> (<?php echo count($categories); ?> total)
+    <div style="padding-top:1rem;">
+        <div class="rail-section-title" style="margin-bottom:1rem;">
+            <?= $is_archived_view ? 'Archived Categories' : 'Active Catalog Categories' ?> (<?php echo count($categories); ?> total)
         </div>
         <?php if (count($categories) === 0) { ?>
             <div class="card in" style="text-align:center; padding:3rem;">
                 <p class="muted">No categories in this view.</p>
             </div>
-        <?php } ?>
-        <?php foreach ($categories as $c) { ?>
-            <div class="line">
-                <div class="tile" style="--h: <?php echo ($c['category_id'] * 47) % 360; ?>; aspect-ratio:1; max-height:64px;"></div>
-                <?php if (!$is_archived_view) { ?>
-                    <form method="POST" action="categories.php" style="display:flex; gap:.75rem; align-items:center; flex:1;">
-                        <?= csrf_field() ?>
-                        <input type="hidden" name="category_id" value="<?php echo $c['category_id']; ?>">
-                        <input type="text" name="name" value="<?php echo htmlspecialchars($c['name']); ?>" required style="flex:1; padding:0.6rem 1rem;">
-                        <button class="btn ghost sm" type="submit" name="rename_category">Save Name</button>
-                    </form>
-                    <form method="POST" action="categories.php"
-                          onsubmit="return confirm('Remove this category?');">
-                        <?= csrf_field() ?>
-                        <input type="hidden" name="category_id" value="<?php echo $c['category_id']; ?>">
-                        <button class="btn ghost sm" type="submit" name="deactivate_category" style="color:#ff9f96; border-color:rgba(255,100,100,0.25);">Remove</button>
-                    </form>
-                <?php } else { ?>
-                    <div style="flex:1;">
-                        <strong style="font-size:1.1rem;"><?= htmlspecialchars($c['name']) ?></strong>
-                        <span class="muted" style="display:block; font-size:12px;">Archived category</span>
+        <?php } else { ?>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:1rem;">
+                <?php foreach ($categories as $c) { 
+                    $count = $item_counts[$c['category_id']] ?? 0;
+                    $hue = ($c['category_id'] * 47) % 360;
+                ?>
+                    <div class="card in" style="display:flex; flex-direction:column; justify-content:space-between; padding:1.25rem; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.02);">
+                        <!-- Header with Color Accent & Item Count Badge -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                            <div style="width:28px; height:28px; border-radius:6px; background:hsl(<?= $hue ?>, 70%, 50%); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#fff;">
+                                <?= strtoupper(substr($c['name'], 0, 1)) ?>
+                            </div>
+                            <span class="status-badge" style="font-size:11px; padding:2px 8px; background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.12);">
+                                <?= $count ?> <?= $count === 1 ? 'item' : 'items' ?>
+                            </span>
+                        </div>
+
+                        <!-- Category Name / Edit Form -->
+                        <div style="flex-grow:1; margin-bottom:1rem;">
+                            <?php if (!$is_archived_view) { ?>
+                                <form method="POST" action="categories.php" id="form_cat_<?= $c['category_id'] ?>">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="category_id" value="<?php echo $c['category_id']; ?>">
+                                    <label class="form-label" style="font-size:11px; margin-bottom:4px; display:block;">Category Name</label>
+                                    <input type="text" name="name" value="<?php echo htmlspecialchars($c['name']); ?>" style="padding:0.45rem 0.65rem; font-size:13px; font-weight:600; width:100%;">
+                                </form>
+                            <?php } else { ?>
+                                <div style="font-size:1.1rem; font-weight:700; color:var(--color-fg);"><?= htmlspecialchars($c['name']) ?></div>
+                                <span class="muted" style="font-size:11px;">Archived Category</span>
+                            <?php } ?>
+                        </div>
+
+                        <!-- Card Footer Quick Actions -->
+                        <div style="display:flex; gap:0.5rem; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.06); padding-top:0.75rem;">
+                            <?php if (!$is_archived_view) { ?>
+                                <button class="btn ghost sm" type="submit" form="form_cat_<?= $c['category_id'] ?>" name="rename_category" style="font-size:11px; padding:4px 10px;">💾 Save</button>
+                                <form method="POST" action="categories.php" onsubmit="return confirm('Archive category \'<?= htmlspecialchars(addslashes($c['name'])) ?>\'?');" style="margin:0;">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="category_id" value="<?php echo $c['category_id']; ?>">
+                                    <button class="btn ghost sm" type="submit" name="deactivate_category" style="color:#ff9f96; border-color:rgba(255,100,100,0.25); font-size:11px; padding:4px 10px;">Archive</button>
+                                </form>
+                            <?php } else { ?>
+                                <form method="POST" action="categories.php" style="width:100%;">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="category_id" value="<?php echo $c['category_id']; ?>">
+                                    <button class="btn sm" type="submit" name="restore_category" style="width:100%; font-size:11px; padding:5px 10px; background:rgba(81,175,67,0.85);">↺ Restore Category</button>
+                                </form>
+                            <?php } ?>
+                        </div>
                     </div>
-                    <form method="POST" action="categories.php">
-                        <?= csrf_field() ?>
-                        <input type="hidden" name="category_id" value="<?php echo $c['category_id']; ?>">
-                        <button class="btn sm" type="submit" name="restore_category" style="background:rgba(81,175,67,0.85);">↺ Restore Category</button>
-                    </form>
                 <?php } ?>
             </div>
         <?php } ?>

@@ -83,6 +83,25 @@ $cat_hues = array(200, 260, 40, 160, 310, 20, 180, 340);
                     </a>
                 <?php } ?>
             </div>
+
+            <!-- Quiz 3: Homepage Search Feature -->
+            <form action="shop.php" method="GET" class="hero-search-box" style="margin-top:1.75rem; max-width:480px; position:relative; display:flex; align-items:center; background:rgba(20,24,33,0.85); border:1px solid rgba(255,255,255,0.12); border-radius:9999px; padding:4px 6px 4px 18px; backdrop-filter:blur(12px); box-shadow:0 8px 30px rgba(0,0,0,0.45); transition:border-color 0.2s, box-shadow 0.2s;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.6; flex-shrink:0; margin-right:8px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" name="q" placeholder="Search gear, shoes, balls, brands..." autocomplete="off" style="flex:1; background:transparent; border:none; outline:none; color:#f3f4f6; font-size:13px; font-weight:500; font-family:inherit; padding:8px 4px;">
+                <button type="submit" class="btn" style="padding:0.65rem 1.4rem; font-size:11px; letter-spacing:0.04em; border-radius:9999px; flex-shrink:0; text-transform:uppercase;">
+                    Search
+                </button>
+            </form>
+            <div style="margin-top:0.65rem; font-size:11px; opacity:0.55; display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+                <span>Popular:</span>
+                <a href="shop.php?q=Basketball" style="color:inherit; text-decoration:underline;">Basketball</a>
+                <span>•</span>
+                <a href="shop.php?q=Shoes" style="color:inherit; text-decoration:underline;">Shoes</a>
+                <span>•</span>
+                <a href="shop.php?q=Nike" style="color:inherit; text-decoration:underline;">Nike</a>
+                <span>•</span>
+                <a href="shop.php?q=Dumbbell" style="color:inherit; text-decoration:underline;">Dumbbell</a>
+            </div>
         </div>
         <div class="home-hero-visual reveal">
             <div class="spotibai-3d-wrap">

@@ -29,15 +29,11 @@ if (isset($_SESSION['cart'])) $cart_count = array_sum($_SESSION['cart']);
 <div class="nav-container">
     <header class="nav">
     <?php if ($is_admin) { ?>
-        <a class="brand" href="<?= $base ?>admin/index.php">SPORTI<span class="ops">BAI</span></a>
+        <a class="brand" href="<?= $base ?>admin/index.php">SPORTI<span class="ops">BAI</span> <span style="font-size:10px; font-weight:700; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; letter-spacing:1px; vertical-align:middle; margin-left:4px;">ADMIN</span></a>
         <nav class="nav-links">
             <a href="<?= $base ?>admin/index.php">Dashboard</a>
-            <a href="<?= $base ?>admin/items.php">Items</a>
-            <a href="<?= $base ?>admin/categories.php">Categories</a>
-            <a href="<?= $base ?>admin/orders.php">Orders</a>
-            <a href="<?= $base ?>admin/users.php">Users</a>
-            <a href="<?= $base ?>admin/expenses.php">Expenses</a>
-            <a href="<?= $base ?>admin/sales_report.php">Report</a>
+            <a href="<?= $base ?>index.php" target="_blank" title="View Customer Storefront">View Shop ↗</a>
+            <a href="<?= $base ?>admin/account.php">Account</a>
             <a href="<?= $base ?>logout.php">Logout</a>
         </nav>
     <?php } else { ?>

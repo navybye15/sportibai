@@ -219,6 +219,11 @@ $banner = $status_banners[$order['status']] ?? array('title' => $order['status']
             <!-- CTA Actions -->
             <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
                 <a href="orders.php" class="btn ghost sm">← Back to Orders</a>
+                <?php if ($order['status'] === 'Completed') { ?>
+                    <a href="orders.php?tab=completed&open_review=<?= $order['order_id'] ?>" class="btn sm" style="background:rgba(245,158,11,0.25); color:#f59e0b; border:1px solid rgba(245,158,11,0.5); font-size:11px; box-shadow:0 0 10px rgba(245,158,11,0.25);">
+                        ⭐ Review Gear
+                    </a>
+                <?php } ?>
                 <?php if ($can_receive) { ?>
                     <form method="POST" action="receive_order.php" style="display:inline;">
                         <?= csrf_field() ?>

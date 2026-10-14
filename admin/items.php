@@ -14,24 +14,44 @@ if (isset($_POST['add_item'])) {
         exit;
     }
     try {
-        $name = strip_tags(trim($_POST['name']));
-        $brand = strip_tags(trim($_POST['brand']));
-        $description = strip_tags(trim($_POST['description']));
-        $price = (float) $_POST['price'];
-        $cost_price = isset($_POST['cost_price']) ? (float) $_POST['cost_price'] : 0.00;
-        $stock = (int) $_POST['stock'];
-        $category_id = (int) $_POST['category_id'];
+        $name = strip_tags(trim($_POST['name'] ?? ''));
+        $brand = strip_tags(trim($_POST['brand'] ?? ''));
+        $description = strip_tags(trim($_POST['description'] ?? ''));
+        $price_raw = trim($_POST['price'] ?? '');
+        $cost_raw = trim($_POST['cost_price'] ?? '0');
+        $stock_raw = trim($_POST['stock'] ?? '');
+        $category_id = (int) ($_POST['category_id'] ?? 0);
 
-        if ($name == '' || $price <= 0 || $stock < 0) {
-            throw new Exception('Please fill in a valid name, price, and stock.');
+        // Pure PHP Server-side Validation (MP5 Requirement)
+        if ($name === '') {
+            throw new Exception('Item name is required.');
         }
+        if ($category_id <= 0) {
+            throw new Exception('Please select a valid category.');
+        }
+        if ($price_raw === '' || !is_numeric($price_raw) || (float)$price_raw <= 0) {
+            throw new Exception('Please enter a valid selling price greater than 0.');
+        }
+        $price = (float)$price_raw;
+        $cost_price = ($cost_raw !== '' && is_numeric($cost_raw)) ? max(0, (float)$cost_raw) : 0.00;
 
+        if ($stock_raw === '' || !is_numeric($stock_raw) || (int)$stock_raw < 0) {
+            throw new Exception('Please enter a valid stock quantity (0 or greater).');
+        }
+        $stock = (int)$stock_raw;
+
+        // MP1: Single primary photo
         $image = handle_item_image($_FILES['image']);
 
         $sql = "INSERT INTO items (category_id, name, brand, description, price, cost_price, stock, image)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         mysqli_execute_query($conn, $sql, array($category_id, $name, $brand, $description, $price, $cost_price, $stock, $image));
         $new_id = mysqli_insert_id($conn);
+
+        // MP1: Upload multiple photos into item_images table
+        if (isset($_FILES['gallery_images'])) {
+            handle_multiple_item_images($_FILES['gallery_images'], $new_id, $conn);
+        }
 
         // Record initial stock in stock_log
         if ($stock > 0) {
@@ -40,7 +60,7 @@ if (isset($_POST['add_item'])) {
             @mysqli_execute_query($conn, $sql_log, array($new_id, $stock, $stock, $user_id));
         }
 
-        $_SESSION['success'] = 'Item published to store catalog.';
+        $_SESSION['success'] = 'Item published to store catalog with photos.';
     } catch (Exception $e) {
         $_SESSION['message'] = $e->getMessage();
     }
@@ -166,8 +186,8 @@ require '../includes/header.php';
     <?php require '../includes/alert.php'; ?>
 
     <?php if (!$is_archived_view) { ?>
-    <!-- Add Item Form -->
-    <form id="add" class="form" method="POST" action="items.php" enctype="multipart/form-data" style="margin: 1.5rem 0 2.5rem; max-width: 100%;">
+    <!-- Add Item Form (MP1 Multi-photo + MP5 Pure PHP validation) -->
+    <form id="add" class="form" method="POST" action="items.php" enctype="multipart/form-data" novalidate style="margin: 1.5rem 0 2.5rem; max-width: 100%;">
         <?= csrf_field() ?>
         <div>
             <div class="hero-eyebrow">[ PRODUCT INTAKE ]</div>
@@ -175,16 +195,17 @@ require '../includes/header.php';
         </div>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;">
             <div>
-                <label class="form-label">Item Name</label>
-                <input type="text" name="name" placeholder="e.g. Wilson Evolution Basketball" required style="margin-top:0.6rem;">
+                <label class="form-label">Item Name *</label>
+                <input type="text" name="name" placeholder="e.g. Wilson Evolution Basketball" style="margin-top:0.6rem;">
             </div>
             <div>
                 <label class="form-label">Brand</label>
                 <input type="text" name="brand" placeholder="e.g. Wilson" style="margin-top:0.6rem;">
             </div>
             <div>
-                <label class="form-label">Category</label>
-                <select name="category_id" required style="margin-top:0.6rem;">
+                <label class="form-label">Category *</label>
+                <select name="category_id" style="margin-top:0.6rem;">
+                    <option value="">-- Select Category --</option>
                     <?php foreach ($categories as $c) { ?>
                         <option value="<?php echo $c['category_id']; ?>"><?php echo htmlspecialchars($c['name']); ?></option>
                     <?php } ?>
@@ -195,16 +216,21 @@ require '../includes/header.php';
                 <input type="number" step="0.01" name="cost_price" placeholder="0.00" value="0.00" style="margin-top:0.6rem;">
             </div>
             <div>
-                <label class="form-label">Selling Price (₱)</label>
-                <input type="number" step="0.01" name="price" placeholder="0.00" required style="margin-top:0.6rem;">
+                <label class="form-label">Selling Price (₱) *</label>
+                <input type="number" step="0.01" name="price" placeholder="0.00" style="margin-top:0.6rem;">
             </div>
             <div>
-                <label class="form-label">Initial Stock</label>
-                <input type="number" name="stock" placeholder="Starting quantity" required style="margin-top:0.6rem;">
+                <label class="form-label">Initial Stock *</label>
+                <input type="number" name="stock" placeholder="Starting quantity" style="margin-top:0.6rem;">
             </div>
             <div>
-                <label class="form-label">Product Image (.jpg, .png, .webp)</label>
+                <label class="form-label">Primary Cover Image (.jpg, .png, .webp)</label>
                 <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" style="margin-top:0.6rem;">
+            </div>
+            <div>
+                <label class="form-label">Additional Gallery Photos (MP1: Multiple)</label>
+                <input type="file" name="gallery_images[]" multiple accept=".jpg,.jpeg,.png,.webp" style="margin-top:0.6rem;">
+                <small class="muted" style="font-size:11px;">Hold Ctrl/Cmd to select multiple pictures</small>
             </div>
         </div>
         <div>
@@ -212,7 +238,7 @@ require '../includes/header.php';
             <textarea name="description" rows="2" placeholder="Item specs, materials, intended sport..." style="margin-top:0.6rem;"></textarea>
         </div>
         <div>
-            <button class="btn" type="submit" name="add_item">+ Publish Item to Store</button>
+            <button class="btn" type="submit" name="add_item">+ Publish Item with Photos</button>
         </div>
     </form>
     <?php } ?>
@@ -232,7 +258,9 @@ require '../includes/header.php';
             $margin = $item['price'] > 0 ? (($item['price'] - $cost) / $item['price'] * 100) : 0;
         ?>
             <div class="line" style="gap:1.25rem;">
-                <?php item_tile($item, '../'); ?>
+                <a href="item_edit.php?id=<?php echo $item['item_id']; ?>" style="text-decoration:none; display:inline-block; transition:transform 0.2s;" title="Click image to edit item">
+                    <?php item_tile($item, '../'); ?>
+                </a>
                 <div style="flex-grow:1;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <span class="brand-tag" style="font-size:var(--text-label); letter-spacing:var(--tracking-label); text-transform:uppercase; color:var(--color-accent-on-dark); font-weight:600;">
@@ -242,7 +270,9 @@ require '../includes/header.php';
                             <span class="status-badge" style="background:rgba(255,100,80,0.15); color:#ff9f96; border-color:rgba(255,100,80,0.3); font-size:10px; padding:2px 8px;">LOW STOCK</span>
                         <?php } ?>
                     </div>
-                    <h2 style="font-size:1.15rem; margin-top:2px;"><?php echo htmlspecialchars($item['name']); ?></h2>
+                    <a href="item_edit.php?id=<?php echo $item['item_id']; ?>" style="color:inherit; text-decoration:none;" title="Click item name to edit">
+                        <h2 style="font-size:1.15rem; margin-top:2px; display:inline-block;"><?php echo htmlspecialchars($item['name']); ?> <span style="font-size:12px; color:var(--color-accent-on-dark); opacity:0.8;">✏️</span></h2>
+                    </a>
                     <div class="muted" style="font-size:var(--text-body-sm); margin-top:4px; display:flex; flex-wrap:wrap; gap:10px;">
                         <span>Price: <strong style="color:var(--color-fg)"><?php echo peso($item['price']); ?></strong></span>
                         <?php if ($cost > 0) { ?>

@@ -90,6 +90,141 @@ function handle_item_image($file) {
     return $new_name;
 }
 
+// ── Handle User Profile Photo Upload (MP2) ──────────────────────────────────
+function handle_user_photo($file) {
+    if (!isset($file) || $file['error'] == UPLOAD_ERR_NO_FILE) {
+        return '';
+    }
+    if ($file['error'] != UPLOAD_ERR_OK) {
+        throw new Exception('Profile photo upload failed.');
+    }
+
+    // 1. Limit file size (2 MB)
+    $max_size = 2 * 1024 * 1024;
+    if ($file['size'] > $max_size) {
+        throw new Exception('Profile photo is too large. Max size is 2MB.');
+    }
+
+    // 2. Allowed extensions
+    $allowed_ext = array('jpg', 'jpeg', 'png', 'webp');
+    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowed_ext)) {
+        throw new Exception('Only JPG, PNG, or WEBP photos are allowed.');
+    }
+
+    // 3. Check actual MIME type
+    $allowed_mime = array('image/jpeg', 'image/png', 'image/webp');
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+    if (!in_array($mime, $allowed_mime)) {
+        throw new Exception('Uploaded file is not a valid image.');
+    }
+
+    $new_name = uniqid('user_', true) . '.' . $ext;
+    $destination = __DIR__ . '/../images/uploads/' . $new_name;
+
+    if (!move_uploaded_file($file['tmp_name'], $destination)) {
+        throw new Exception('Could not save uploaded profile photo.');
+    }
+
+    return $new_name;
+}
+
+// ── Handle Customer Review Image Upload (MP4) ───────────────────────────────
+function handle_review_image($file) {
+    if (!isset($file) || $file['error'] == UPLOAD_ERR_NO_FILE) {
+        return '';
+    }
+    if ($file['error'] != UPLOAD_ERR_OK) {
+        throw new Exception('Review image upload failed.');
+    }
+
+    $max_size = 3 * 1024 * 1024; // 3 MB
+    if ($file['size'] > $max_size) {
+        throw new Exception('Review photo is too large. Max size is 3MB.');
+    }
+
+    $allowed_ext = array('jpg', 'jpeg', 'png', 'webp');
+    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowed_ext)) {
+        throw new Exception('Only JPG, PNG, or WEBP photos are allowed for reviews.');
+    }
+
+    $allowed_mime = array('image/jpeg', 'image/png', 'image/webp');
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+    if (!in_array($mime, $allowed_mime)) {
+        throw new Exception('Uploaded file is not a valid image.');
+    }
+
+    $new_name = uniqid('review_', true) . '.' . $ext;
+    $destination = __DIR__ . '/../images/uploads/' . $new_name;
+
+    if (!move_uploaded_file($file['tmp_name'], $destination)) {
+        throw new Exception('Could not save uploaded review photo.');
+    }
+
+    return $new_name;
+}
+
+// ── Handle Multiple Item Images (MP1) ────────────────────────────────────────
+function handle_multiple_item_images($files, $item_id, $conn) {
+    if (!isset($files['name']) || !is_array($files['name'])) {
+        return 0;
+    }
+
+    $uploaded_count = 0;
+    $count = count($files['name']);
+    $allowed_ext = array('jpg', 'jpeg', 'png', 'webp');
+    $allowed_mime = array('image/jpeg', 'image/png', 'image/webp');
+    $max_size = 3 * 1024 * 1024; // 3MB
+
+    for ($i = 0; $i < $count; $i++) {
+        if ($files['error'][$i] == UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+        if ($files['error'][$i] != UPLOAD_ERR_OK) {
+            continue;
+        }
+        if ($files['size'][$i] > $max_size) {
+            continue;
+        }
+
+        $ext = strtolower(pathinfo($files['name'][$i], PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowed_ext)) {
+            continue;
+        }
+
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = finfo_file($finfo, $files['tmp_name'][$i]);
+        finfo_close($finfo);
+        if (!in_array($mime, $allowed_mime)) {
+            continue;
+        }
+
+        $new_name = uniqid('item_gallery_', true) . '.' . $ext;
+        $destination = __DIR__ . '/../images/uploads/' . $new_name;
+
+        if (move_uploaded_file($files['tmp_name'][$i], $destination)) {
+            $sql = "INSERT INTO item_images (item_id, image_path, sort_order) VALUES (?, ?, ?)";
+            mysqli_execute_query($conn, $sql, array($item_id, $new_name, $uploaded_count));
+            $uploaded_count++;
+        }
+    }
+    return $uploaded_count;
+}
+
+// ── Mask Foul Words via Regex (MP4) ─────────────────────────────────────────
+function filter_bad_words($text) {
+    $bad_words = array('puta', 'gago', 'tangina', 'tarantado', 'bobo', 'inutil', 'ulol', 'pakshet', 'fuck', 'shit', 'damn', 'ass', 'bitch', 'cunt', 'dick', 'pussy', 'bastard');
+    $pattern = '/\b(' . implode('|', array_map('preg_quote', $bad_words)) . ')\b/i';
+    return preg_replace_callback($pattern, function($m) {
+        return str_repeat('*', strlen($m[0]));
+    }, $text ?? '');
+}
+
 // Generate a human-readable reference number from an order_id
 // Called AFTER INSERT to get the new order_id, then UPDATE.
 function generate_ref($order_id) {

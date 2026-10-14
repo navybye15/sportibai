@@ -80,7 +80,12 @@ if (isset($_POST['update_status'])) {
         mysqli_execute_query($conn, $sql, array($order_id, $new_status));
 
         mysqli_commit($conn);
-        $_SESSION['success'] = 'Order #' . $order_id . ' is now ' . $new_status . '.';
+
+        // Term Test Lab requirement: Send email to customer on status update + PDF attachment
+        require_once __DIR__ . '/../includes/mailer.php';
+        send_order_status_update_email($order_id, $new_status, $conn);
+
+        $_SESSION['success'] = 'Order #' . $order_id . ' is now ' . $new_status . '. Notification email & PDF receipt sent to customer.';
     } catch (Exception $e) {
         mysqli_rollback($conn);
         $_SESSION['message'] = $e->getMessage();
@@ -148,7 +153,7 @@ while ($row = mysqli_fetch_assoc($result)) {
 $order_items = array();
 if (count($orders) > 0) {
     $ids    = implode(',', array_column($orders, 'order_id'));
-    $sql    = "SELECT oi.order_id, i.name, oi.quantity, oi.price
+    $sql    = "SELECT oi.order_id, i.name, i.image, oi.quantity, oi.price
                FROM order_items oi JOIN items i ON oi.item_id = i.item_id
                WHERE oi.order_id IN ($ids) ORDER BY oi.order_item_id";
     $result = mysqli_query($conn, $sql);
@@ -255,14 +260,21 @@ require '../includes/header.php';
                 </div>
             </div>
 
-            <!-- Items -->
+            <!-- Items with Visual Thumbnails -->
             <?php if (isset($order_items[$o['order_id']])) { ?>
-            <div class="order-items-preview">
-                <p class="muted" style="font-size:var(--text-body-sm);">
-                    <?php foreach ($order_items[$o['order_id']] as $oi) {
-                        echo htmlspecialchars($oi['quantity']) . 'x ' . htmlspecialchars($oi['name']) . ' (' . peso($oi['price']) . ')  ';
-                    } ?>
-                </p>
+            <div class="order-items-preview" style="display:flex; flex-wrap:wrap; gap:10px; margin:0.75rem 0;">
+                <?php foreach ($order_items[$o['order_id']] as $oi) { 
+                    $has_img = !empty($oi['image']) && file_exists(__DIR__ . '/../images/uploads/' . $oi['image']);
+                    $img_src = $has_img ? '../images/uploads/' . htmlspecialchars($oi['image']) : '../images/placeholder.svg';
+                ?>
+                    <div style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); padding:4px 10px; border-radius:8px;">
+                        <img src="<?= $img_src ?>" alt="" style="width:34px; height:34px; object-fit:cover; border-radius:6px; flex-shrink:0; background:rgba(255,255,255,0.05);">
+                        <span style="font-size:13px; font-weight:500;">
+                            <strong style="color:var(--color-accent-on-dark);"><?= htmlspecialchars($oi['quantity']) ?>x</strong> <?= htmlspecialchars($oi['name']) ?>
+                            <span class="muted" style="font-size:11px; margin-left:4px;">(<?= peso($oi['price']) ?>)</span>
+                        </span>
+                    </div>
+                <?php } ?>
             </div>
             <?php } ?>
 
@@ -275,8 +287,9 @@ require '../includes/header.php';
             </div>
 
             <!-- Status Update Actions -->
-            <?php if (count($allowed) > 0) { ?>
-            <div class="order-card-actions">
+            <div class="order-card-actions" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+                <a href="../download_receipt.php?order_id=<?= $o['order_id'] ?>" target="_blank" class="btn ghost sm" style="font-size:11px;">📄 PDF Receipt</a>
+                <?php if (count($allowed) > 0) { ?>
                 <form method="POST" action="orders.php" style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
                     <?= csrf_field() ?>
                     <input type="hidden" name="order_id" value="<?= $o['order_id'] ?>">
@@ -290,8 +303,8 @@ require '../includes/header.php';
                     </select>
                     <button class="btn sm" type="submit" name="update_status">Update Status</button>
                 </form>
+                <?php } ?>
             </div>
-            <?php } ?>
         </div>
     <?php } ?>
     </div>

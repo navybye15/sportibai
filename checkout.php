@@ -107,8 +107,11 @@ if (isset($_POST['place_order'])) {
             $total       += $subtotal;
             $line_items[] = array('item_id' => $item_id, 'qty' => $qty, 'price' => $item['price']);
         }
-        $total         = round($total, 2);
-        $snapshot_name = $customer['first_name'] . ' ' . $customer['last_name'];
+        $recipient_name = strip_tags(trim($_POST['recipient_name'] ?? ''));
+        if ($recipient_name === '') {
+            $recipient_name = trim($customer['first_name'] . ' ' . $customer['last_name']);
+        }
+        $snapshot_name = $recipient_name ?: 'Customer';
 
         // Insert order row
         $sql = "INSERT INTO orders
@@ -238,23 +241,30 @@ require 'includes/header.php';
 
                     <div class="address-card">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                            <span style="font-weight:600;">
-                                <?= htmlspecialchars($customer['first_name'] . ' ' . $customer['last_name']) ?>
+                            <span class="muted" style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:1px;">
+                                Delivery Details
                             </span>
-                            <a href="profile.php?return=checkout" class="btn ghost sm" style="font-size:10px; padding:4px 10px;">Edit Profile</a>
+                            <a href="profile.php?return=checkout" class="btn ghost sm" style="font-size:10px; padding:4px 10px;">Edit Saved Profile</a>
+                        </div>
+                        <div style="margin-bottom:1rem;">
+                            <label class="form-label" style="margin-bottom:6px; display:block;">Recipient Name</label>
+                            <input type="text" name="recipient_name" class="co-input"
+                                placeholder="Full Name of receiver"
+                                value="<?= htmlspecialchars($_POST['recipient_name'] ?? ($customer['first_name'] . ' ' . $customer['last_name'])) ?>">
+                            <small class="muted" style="font-size:11px; display:block; margin-top:3px;">You can set a different recipient name if this order is for someone else.</small>
                         </div>
                         <div class="co-form-row">
                             <div>
-                                <label class="form-label" style="margin-bottom:6px; display:block;">Street / Barangay <span style="color:#ff9f96;">*</span></label>
+                                <label class="form-label" style="margin-bottom:6px; display:block;">Street / Barangay</label>
                                 <input type="text" name="street" class="co-input"
                                     placeholder="123 Mabini St., Brgy. Lahug"
-                                    value="<?= htmlspecialchars($customer['address']) ?>" required>
+                                    value="<?= htmlspecialchars($_POST['street'] ?? $customer['address']) ?>">
                             </div>
                             <div>
-                                <label class="form-label" style="margin-bottom:6px; display:block;">City / Municipality <span style="color:#ff9f96;">*</span></label>
+                                <label class="form-label" style="margin-bottom:6px; display:block;">City / Municipality</label>
                                 <input type="text" name="city" class="co-input"
                                     placeholder="Cebu City"
-                                    value="Cebu City" required>
+                                    value="<?= htmlspecialchars($_POST['city'] ?? 'Cebu City') ?>">
                             </div>
                         </div>
                         <div class="co-form-row">

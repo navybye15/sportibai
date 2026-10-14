@@ -49,7 +49,9 @@ try {
     mysqli_execute_query($conn, $sql, array($order_id));
 
     mysqli_commit($conn);
-    $_SESSION['success'] = 'Order #' . $order_id . ' marked as received. Thank you!';
+    $_SESSION['success'] = 'Order #' . $order_id . ' marked as received! You can now write a review for your gear below.';
+    header('Location: orders.php?tab=completed&open_review=' . $order_id);
+    exit;
 } catch (mysqli_sql_exception $e) {
     mysqli_rollback($conn);
     $_SESSION['message'] = 'Something went wrong. Please try again.';
