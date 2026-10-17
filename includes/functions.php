@@ -470,12 +470,32 @@ function get_item_size_stock($conn, $item_id, $size_label) {
     return 0;
 }
 
-function category_supports_sizes($category_name) {
-    $cat = strtolower(trim($category_name));
-    if (in_array($cat, array('apparel', 'apparels', 'clothing', 'shirts', 'jerseys', 'shorts', 'wear'))) {
+function category_supports_sizes($param1, $param2 = null) {
+    global $conn;
+    $db = ($param1 instanceof mysqli) ? $param1 : $conn;
+    $target = ($param1 instanceof mysqli) ? $param2 : $param1;
+
+    if (empty($target)) {
+        return false;
+    }
+
+    $cat_name = '';
+    if (is_numeric($target)) {
+        if ($db) {
+            $c_res = mysqli_execute_query($db, "SELECT name FROM categories WHERE category_id = ? LIMIT 1", array((int)$target));
+            if ($crow = mysqli_fetch_assoc($c_res)) {
+                $cat_name = $crow['name'];
+            }
+        }
+    } else {
+        $cat_name = (string)$target;
+    }
+
+    $cat = strtolower(trim($cat_name));
+    if (in_array($cat, array('apparel', 'apparels', 'clothing', 'shirts', 'jerseys', 'shorts', 'wear', 't-shirt', 'tshirt', 'uniform'))) {
         return 'apparel';
     }
-    if (in_array($cat, array('footwear', 'shoes', 'kicks', 'sneakers'))) {
+    if (in_array($cat, array('footwear', 'footwears', 'shoes', 'shoe', 'kicks', 'sneakers', 'cleats'))) {
         return 'footwear';
     }
     return false;

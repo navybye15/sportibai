@@ -35,10 +35,25 @@ if (isset($_POST['add_item'])) {
         $price = (float)$price_raw;
         $cost_price = ($cost_raw !== '' && is_numeric($cost_raw)) ? max(0, (float)$cost_raw) : 0.00;
 
-        if ($stock_raw === '' || !is_numeric($stock_raw) || (int)$stock_raw < 0) {
-            throw new Exception('Please enter a valid stock quantity (0 or greater).');
+        $size_type = category_supports_sizes($conn, $category_id);
+        $stock = 0;
+
+        if ($size_type === 'apparel') {
+            $apparel_inputs = $_POST['apparel_sizes'] ?? array();
+            foreach ($apparel_inputs as $s_label => $s_qty) {
+                $stock += max(0, (int)$s_qty);
+            }
+        } elseif ($size_type === 'footwear') {
+            $footwear_inputs = $_POST['footwear_sizes'] ?? array();
+            foreach ($footwear_inputs as $s_label => $s_qty) {
+                $stock += max(0, (int)$s_qty);
+            }
+        } else {
+            if ($stock_raw === '' || !is_numeric($stock_raw) || (int)$stock_raw < 0) {
+                throw new Exception('Please enter a valid stock quantity (0 or greater).');
+            }
+            $stock = (int)$stock_raw;
         }
-        $stock = (int)$stock_raw;
 
         // MP1: Single primary photo
         $image = handle_item_image($_FILES['image']);
@@ -53,16 +68,19 @@ if (isset($_POST['add_item'])) {
             handle_multiple_item_images($_FILES['gallery_images'], $new_id, $conn);
         }
 
-        // Option 1: If category supports sizes (Apparel / Footwear), initialize default size variants
-        $size_type = category_supports_sizes($conn, $category_id);
-        if ($size_type) {
-            $default_sizes = get_default_sizes_for_type($size_type);
-            $sz_count = count($default_sizes);
-            $per_sz = $sz_count > 0 ? intdiv($stock, $sz_count) : 0;
-            $rem = $sz_count > 0 ? ($stock % $sz_count) : 0;
-            foreach ($default_sizes as $idx => $s_label) {
-                $s_stock = $per_sz + ($idx < $rem ? 1 : 0);
-                mysqli_execute_query($conn, "INSERT INTO item_sizes (item_id, size_label, stock) VALUES (?, ?, ?)", array($new_id, $s_label, $s_stock));
+        // Option 1: If category supports sizes (Apparel / Footwear), save individual size variants
+        if ($size_type === 'apparel') {
+            $default_apparel = get_default_sizes_for_type('apparel');
+            foreach ($default_apparel as $s_label) {
+                $s_qty = isset($_POST['apparel_sizes'][$s_label]) ? max(0, (int)$_POST['apparel_sizes'][$s_label]) : 0;
+                mysqli_execute_query($conn, "INSERT INTO item_sizes (item_id, size_label, stock) VALUES (?, ?, ?)", array($new_id, $s_label, $s_qty));
+            }
+            sync_item_total_stock($conn, $new_id);
+        } elseif ($size_type === 'footwear') {
+            $default_footwear = get_default_sizes_for_type('footwear');
+            foreach ($default_footwear as $s_label) {
+                $s_qty = isset($_POST['footwear_sizes'][$s_label]) ? max(0, (int)$_POST['footwear_sizes'][$s_label]) : 0;
+                mysqli_execute_query($conn, "INSERT INTO item_sizes (item_id, size_label, stock) VALUES (?, ?, ?)", array($new_id, $s_label, $s_qty));
             }
             sync_item_total_stock($conn, $new_id);
         }
@@ -249,10 +267,12 @@ require '../includes/header.php';
             </div>
             <div>
                 <label class="form-label">Category *</label>
-                <select name="category_id" style="margin-top:0.6rem;">
-                    <option value="">-- Select Category --</option>
-                    <?php foreach ($categories as $c) { ?>
-                        <option value="<?php echo $c['category_id']; ?>"><?php echo htmlspecialchars($c['name']); ?></option>
+                <select name="category_id" id="item_category_select" onchange="onCategoryChange()" style="margin-top:0.6rem;">
+                    <option value="" data-type="">-- Select Category --</option>
+                    <?php foreach ($categories as $c) { 
+                        $supp = category_supports_sizes($conn, $c['category_id']);
+                    ?>
+                        <option value="<?php echo $c['category_id']; ?>" data-type="<?php echo $supp; ?>"><?php echo htmlspecialchars($c['name']); ?><?php echo $supp ? ' (' . ucfirst($supp) . ' Sizes)' : ''; ?></option>
                     <?php } ?>
                 </select>
             </div>
@@ -264,9 +284,10 @@ require '../includes/header.php';
                 <label class="form-label">Selling Price (₱) *</label>
                 <input type="number" step="0.01" name="price" placeholder="0.00" style="margin-top:0.6rem;">
             </div>
-            <div>
+            <div id="standard_stock_block">
                 <label class="form-label">Initial Stock *</label>
-                <input type="number" name="stock" placeholder="Starting quantity" style="margin-top:0.6rem;">
+                <input type="number" name="stock" id="standard_stock_input" placeholder="Starting quantity" style="margin-top:0.6rem;">
+                <small class="muted" style="font-size:11px;">Units in inventory</small>
             </div>
             <div>
                 <label class="form-label">Primary Cover Image (.jpg, .png, .webp)</label>
@@ -277,6 +298,101 @@ require '../includes/header.php';
                 <input type="file" name="gallery_images[]" multiple accept=".jpg,.jpeg,.png,.webp" style="margin-top:0.6rem;">
                 <small class="muted" style="font-size:11px;">Hold Ctrl/Cmd to select multiple pictures</small>
             </div>
+
+            <!-- Dynamic Size Breakdown for Apparel (Damit) -->
+            <div id="apparel_sizes_block" style="display:none; grid-column: 1 / -1; background:rgba(224,35,28,0.06); border:1px solid rgba(224,35,28,0.3); border-radius:8px; padding:1.25rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:0.75rem;">
+                    <div>
+                        <strong style="color:var(--color-brand-red); font-size:13px;">👕 APPAREL SIZES BREAKDOWN (Damit)</strong>
+                        <p class="muted" style="font-size:11px; margin-top:2px;">Lagyan ng stock ang bawat sukat ng damit (XS, S, M, L, XL, 2XL).</p>
+                    </div>
+                    <div style="font-size:12px; font-weight:700;">
+                        Total Stock: <span id="apparel_total_badge" style="color:var(--color-brand-green); font-size:14px;">0</span> units
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(90px, 1fr)); gap:10px;">
+                    <?php foreach (array('XS','S','M','L','XL','2XL') as $sz_lbl) { ?>
+                        <div style="text-align:center; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:8px 6px;">
+                            <label style="font-size:12px; font-weight:700; color:var(--color-fg); display:block; margin-bottom:4px;"><?= $sz_lbl ?></label>
+                            <input type="number" min="0" name="apparel_sizes[<?= $sz_lbl ?>]" value="0" class="apparel-size-input" style="width:100%; text-align:center; padding:5px 6px; font-size:13px; font-weight:600;" oninput="updateApparelTotal()">
+                        </div>
+                    <?php } ?>
+                </div>
+            </div>
+
+            <!-- Dynamic Size Breakdown for Footwear (Sapatos) -->
+            <div id="footwear_sizes_block" style="display:none; grid-column: 1 / -1; background:rgba(60,130,246,0.08); border:1px solid rgba(60,130,246,0.35); border-radius:8px; padding:1.25rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:0.75rem;">
+                    <div>
+                        <strong style="color:#60a5fa; font-size:13px;">👟 FOOTWEAR SIZES BREAKDOWN (Sapatos)</strong>
+                        <p class="muted" style="font-size:11px; margin-top:2px;">Lagyan ng stock ang bawat EU shoe size (39, 40, 41, 42, 43, 44, 45).</p>
+                    </div>
+                    <div style="font-size:12px; font-weight:700;">
+                        Total Stock: <span id="footwear_total_badge" style="color:var(--color-brand-green); font-size:14px;">0</span> units
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(90px, 1fr)); gap:10px;">
+                    <?php foreach (array('EU 39','EU 40','EU 41','EU 42','EU 43','EU 44','EU 45') as $sz_lbl) { ?>
+                        <div style="text-align:center; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:8px 6px;">
+                            <label style="font-size:11px; font-weight:700; color:var(--color-fg); display:block; margin-bottom:4px;"><?= $sz_lbl ?></label>
+                            <input type="number" min="0" name="footwear_sizes[<?= $sz_lbl ?>]" value="0" class="footwear-size-input" style="width:100%; text-align:center; padding:5px 6px; font-size:13px; font-weight:600;" oninput="updateFootwearTotal()">
+                        </div>
+                    <?php } ?>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        function onCategoryChange() {
+            var sel = document.getElementById('item_category_select');
+            var opt = sel.options[sel.selectedIndex];
+            var type = opt ? opt.getAttribute('data-type') : '';
+
+            var stdBlock = document.getElementById('standard_stock_block');
+            var appBlock = document.getElementById('apparel_sizes_block');
+            var footBlock = document.getElementById('footwear_sizes_block');
+            var stdInput = document.getElementById('standard_stock_input');
+
+            if (type === 'apparel') {
+                stdBlock.style.display = 'none';
+                footBlock.style.display = 'none';
+                appBlock.style.display = 'block';
+                if (stdInput) stdInput.required = false;
+                updateApparelTotal();
+            } else if (type === 'footwear') {
+                stdBlock.style.display = 'none';
+                appBlock.style.display = 'none';
+                footBlock.style.display = 'block';
+                if (stdInput) stdInput.required = false;
+                updateFootwearTotal();
+            } else {
+                stdBlock.style.display = 'block';
+                appBlock.style.display = 'none';
+                footBlock.style.display = 'none';
+                if (stdInput) stdInput.required = true;
+            }
+        }
+
+        function updateApparelTotal() {
+            var inputs = document.querySelectorAll('.apparel-size-input');
+            var total = 0;
+            inputs.forEach(function(inp) { total += parseInt(inp.value) || 0; });
+            document.getElementById('apparel_total_badge').innerText = total;
+            var stdInput = document.getElementById('standard_stock_input');
+            if (stdInput) stdInput.value = total;
+        }
+
+        function updateFootwearTotal() {
+            var inputs = document.querySelectorAll('.footwear-size-input');
+            var total = 0;
+            inputs.forEach(function(inp) { total += parseInt(inp.value) || 0; });
+            document.getElementById('footwear_total_badge').innerText = total;
+            var stdInput = document.getElementById('standard_stock_input');
+            if (stdInput) stdInput.value = total;
+        }
+
+        document.addEventListener('DOMContentLoaded', onCategoryChange);
+        </script>
         </div>
         <div>
             <label class="form-label">Description</label>
