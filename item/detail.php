@@ -36,11 +36,12 @@ if (isset($_POST['submit_review'])) {
     }
     $comment = strip_tags(trim($_POST['comment'] ?? ''));
 
-    // Optional review photo upload (MP4)
+    // Optional review photos upload (Up to 5 photos)
     $review_image = '';
-    if (isset($_FILES['review_image']) && $_FILES['review_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+    $upload_files = $_FILES['review_images'] ?? ($_FILES['review_image'] ?? null);
+    if ($upload_files && (is_array($upload_files['error']) ? !empty(array_filter($upload_files['name'])) : $upload_files['error'] !== UPLOAD_ERR_NO_FILE)) {
         try {
-            $review_image = handle_review_image($_FILES['review_image']);
+            $review_image = handle_multiple_review_images($upload_files, 5);
         } catch (Exception $e) {
             $_SESSION['message'] = $e->getMessage();
             header("Location: detail.php?id=$id#reviews");
@@ -274,15 +275,36 @@ require '../includes/header.php';
                     <textarea name="comment" rows="3" placeholder="Share your experience: performance, durability, fit, packaging..." style="width:100%;"><?= htmlspecialchars($user_existing_review['comment'] ?? '') ?></textarea>
                 </div>
 
-                <!-- Optional Photo Upload -->
+                <!-- Optional Multi-Photo Upload (Up to 5 photos) -->
                 <div style="margin-bottom:1.5rem;">
-                    <label class="form-label" style="display:block; margin-bottom:6px;">Attach Photo <span class="muted" style="font-weight:400; font-size:11px;">(Optional)</span></label>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="file" name="review_image" id="review_photo_input" accept=".jpg,.jpeg,.png,.webp" style="display:none;" onchange="document.getElementById('review_photo_name').innerText = this.files[0] ? this.files[0].name : '';">
-                        <button type="button" class="btn ghost sm" onclick="document.getElementById('review_photo_input').click();">📷 Choose Photo</button>
+                    <label class="form-label" style="display:block; margin-bottom:6px;">
+                        Attach Photos <span class="muted" style="font-weight:400; font-size:11px;">(Optional — Up to 5 photos)</span>
+                    </label>
+                    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                        <input type="file" name="review_images[]" id="review_photo_input" accept=".jpg,.jpeg,.png,.webp" multiple style="display:none;" onchange="handleReviewFileSelect(this, 'review-photo-preview-box', 'review_photo_name')">
+                        <button type="button" class="btn ghost sm" onclick="document.getElementById('review_photo_input').click();">📷 Choose Photos (Max 5)</button>
                         <span id="review_photo_name" class="muted" style="font-size:12px;"></span>
                     </div>
-                    <small class="muted" style="font-size:11px; display:block; margin-top:4px;">JPG, PNG, or WEBP (Max 3MB)</small>
+                    <small class="muted" style="font-size:11px; display:block; margin-top:4px;">JPG, PNG, or WEBP (Max 3MB each, up to 5 photos)</small>
+                    
+                    <!-- Previews of newly selected photos -->
+                    <div id="review-photo-preview-box" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;"></div>
+
+                    <!-- Existing photos if user previously submitted photos -->
+                    <?php 
+                    if ($user_existing_review && !empty($user_existing_review['review_image'])) { 
+                        $ex_imgs = parse_review_images($user_existing_review['review_image']);
+                        if (!empty($ex_imgs)) { ?>
+                            <div style="margin-top:10px; font-size:11px;" class="muted">
+                                <span>Current photos (will be kept unless you choose new ones):</span>
+                                <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;">
+                                    <?php foreach ($ex_imgs as $ei) { 
+                                        if (file_exists(__DIR__ . '/../images/uploads/' . $ei)) { ?>
+                                            <img src="../images/uploads/<?= htmlspecialchars($ei) ?>" alt="Current Photo" style="width:54px; height:54px; object-fit:cover; border-radius:6px; border:1px solid rgba(255,255,255,0.15);">
+                                    <?php } } ?>
+                                </div>
+                            </div>
+                    <?php } } ?>
                 </div>
 
                 <button type="submit" name="submit_review" class="btn" style="padding:0.75rem 1.75rem; font-size:12px;">
@@ -334,6 +356,54 @@ require '../includes/header.php';
                 if (label) label.innerText = currentVal + ' / 5 Stars';
             });
         });
+
+        // Multi-photo selection and preview handler
+        function handleReviewFileSelect(input, previewContainerId, nameLabelId) {
+            var container = document.getElementById(previewContainerId);
+            var label = document.getElementById(nameLabelId);
+            if (!container) return;
+            container.innerHTML = '';
+
+            var files = Array.from(input.files || []);
+            if (files.length === 0) {
+                if (label) label.innerText = '';
+                return;
+            }
+
+            if (files.length > 5) {
+                alert('You can upload a maximum of 5 photos. Showing the first 5 photos.');
+                files = files.slice(0, 5);
+            }
+
+            if (label) {
+                label.innerText = files.length + (files.length === 1 ? ' photo selected' : ' photos selected');
+            }
+
+            files.forEach(function(file) {
+                if (!file.type.match('image.*')) return;
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var thumb = document.createElement('div');
+                    thumb.style.position = 'relative';
+                    thumb.style.width = '64px';
+                    thumb.style.height = '64px';
+                    thumb.style.borderRadius = '8px';
+                    thumb.style.overflow = 'hidden';
+                    thumb.style.border = '1px solid rgba(255,255,255,0.2)';
+                    thumb.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
+
+                    var img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.style.objectFit = 'cover';
+
+                    thumb.appendChild(img);
+                    container.appendChild(thumb);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
         </script>
     <?php } elseif (!isset($_SESSION['user_id'])) { ?>
         <div style="padding:1rem 1.25rem; background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.12); border-radius:10px; margin-bottom:2rem; font-size:13px;" class="muted">
@@ -390,11 +460,16 @@ require '../includes/header.php';
                             <?= nl2br(htmlspecialchars($clean_comment)) ?>
                         </p>
                     <?php } ?>
-                    <?php if (!empty($rev['review_image']) && file_exists(__DIR__ . '/../images/uploads/' . $rev['review_image'])) { ?>
-                        <div style="margin-top:0.75rem;">
-                            <a href="../images/uploads/<?= htmlspecialchars($rev['review_image']) ?>" target="_blank" title="View full image">
-                                <img src="../images/uploads/<?= htmlspecialchars($rev['review_image']) ?>" alt="Review Photo" style="max-width:140px; max-height:140px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.15); cursor:zoom-in;">
-                            </a>
+                    <?php 
+                    $rev_imgs = parse_review_images($rev['review_image'] ?? '');
+                    if (!empty($rev_imgs)) { ?>
+                        <div style="margin-top:0.85rem; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                            <?php foreach ($rev_imgs as $r_img) {
+                                if (file_exists(__DIR__ . '/../images/uploads/' . $r_img)) { ?>
+                                    <a href="../images/uploads/<?= htmlspecialchars($r_img) ?>" target="_blank" title="Click to view full photo">
+                                        <img src="../images/uploads/<?= htmlspecialchars($r_img) ?>" alt="Customer Review Photo" style="width:78px; height:78px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.18); cursor:zoom-in; transition:transform 0.2s, border-color 0.2s;" onmouseover="this.style.transform='scale(1.06)'; this.style.borderColor='#e0231c';" onmouseout="this.style.transform='scale(1)'; this.style.borderColor='rgba(255,255,255,0.18)';">
+                                    </a>
+                            <?php } } ?>
                         </div>
                     <?php } ?>
                 </div>

@@ -131,7 +131,25 @@ function handle_user_photo($file) {
     return $new_name;
 }
 
-// ── Handle Customer Review Image Upload (MP4) ───────────────────────────────
+// ── Parse Review Images (Supports both single image string and JSON array) ────
+function parse_review_images($raw) {
+    if (empty($raw)) {
+        return array();
+    }
+    if (is_array($raw)) {
+        return array_values(array_filter($raw));
+    }
+    $trimmed = trim($raw);
+    if (str_starts_with($trimmed, '[') || str_starts_with($trimmed, '{')) {
+        $decoded = json_decode($trimmed, true);
+        if (is_array($decoded)) {
+            return array_values(array_filter($decoded));
+        }
+    }
+    return array($trimmed);
+}
+
+// ── Handle Customer Review Image Upload (MP4 single fallback) ───────────────
 function handle_review_image($file) {
     if (!isset($file) || $file['error'] == UPLOAD_ERR_NO_FILE) {
         return '';
@@ -167,6 +185,80 @@ function handle_review_image($file) {
     }
 
     return $new_name;
+}
+
+// ── Handle Multiple Customer Review Image Uploads (Up to 5 photos) ──────────
+function handle_multiple_review_images($files, $max_files = 5) {
+    if (!isset($files) || !isset($files['name'])) {
+        return '';
+    }
+
+    // Convert single-file upload format to array format if needed
+    if (!is_array($files['name'])) {
+        if ($files['error'] == UPLOAD_ERR_NO_FILE) {
+            return '';
+        }
+        $single_img = handle_review_image($files);
+        return $single_img !== '' ? json_encode(array($single_img)) : '';
+    }
+
+    $uploaded_images = array();
+    $allowed_ext = array('jpg', 'jpeg', 'png', 'webp');
+    $allowed_mime = array('image/jpeg', 'image/png', 'image/webp');
+    $max_size = 3 * 1024 * 1024; // 3 MB per image
+
+    $count = count($files['name']);
+    $valid_files = 0;
+
+    for ($i = 0; $i < $count; $i++) {
+        if ($files['error'][$i] == UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+        $valid_files++;
+    }
+
+    if ($valid_files > $max_files) {
+        throw new Exception("You can upload a maximum of {$max_files} photos for your review.");
+    }
+
+    for ($i = 0; $i < $count; $i++) {
+        if ($files['error'][$i] == UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+        if ($files['error'][$i] != UPLOAD_ERR_OK) {
+            throw new Exception("Upload failed for photo: " . htmlspecialchars($files['name'][$i]));
+        }
+        if ($files['size'][$i] > $max_size) {
+            throw new Exception("Photo " . htmlspecialchars($files['name'][$i]) . " is too large. Max size is 3MB per photo.");
+        }
+
+        $ext = strtolower(pathinfo($files['name'][$i], PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowed_ext)) {
+            throw new Exception("Photo " . htmlspecialchars($files['name'][$i]) . ": Only JPG, PNG, or WEBP photos are allowed.");
+        }
+
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = finfo_file($finfo, $files['tmp_name'][$i]);
+        finfo_close($finfo);
+        if (!in_array($mime, $allowed_mime)) {
+            throw new Exception("Photo " . htmlspecialchars($files['name'][$i]) . " is not a valid image.");
+        }
+
+        $new_name = uniqid('review_', true) . '.' . $ext;
+        $destination = __DIR__ . '/../images/uploads/' . $new_name;
+
+        if (!move_uploaded_file($files['tmp_name'][$i], $destination)) {
+            throw new Exception("Could not save uploaded photo: " . htmlspecialchars($files['name'][$i]));
+        }
+
+        $uploaded_images[] = $new_name;
+    }
+
+    if (empty($uploaded_images)) {
+        return '';
+    }
+
+    return json_encode($uploaded_images);
 }
 
 // ── Handle Multiple Item Images (MP1) ────────────────────────────────────────

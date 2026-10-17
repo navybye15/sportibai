@@ -68,9 +68,10 @@ if (isset($_POST['submit_review'])) {
     $v_res = mysqli_execute_query($conn, $verify_sql, array($_SESSION['user_id'], $item_id));
     if (mysqli_num_rows($v_res) > 0) {
         $review_img = '';
-        if (isset($_FILES['review_image']) && $_FILES['review_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $upload_files = $_FILES['review_images'] ?? ($_FILES['review_image'] ?? null);
+        if ($upload_files && (is_array($upload_files['error']) ? !empty(array_filter($upload_files['name'])) : $upload_files['error'] !== UPLOAD_ERR_NO_FILE)) {
             try {
-                $review_img = handle_review_image($_FILES['review_image']);
+                $review_img = handle_multiple_review_images($upload_files, 5);
             } catch (Exception $e) {
                 $_SESSION['message'] = $e->getMessage();
                 header('Location: orders.php?tab=completed');
@@ -323,15 +324,23 @@ require 'includes/header.php';
                 <textarea name="comment" id="modal-comment-input" rows="3" placeholder="Share your experience: grip, bounce, durability, fit, packaging..." style="width:100%;"></textarea>
             </div>
 
-            <!-- Optional Photo Upload -->
+            <!-- Optional Multi-Photo Upload (Up to 5 photos) -->
             <div style="margin-bottom:1.5rem;">
-                <label class="form-label" style="display:block; margin-bottom:6px;">Attach Product Photo <span class="muted" style="font-weight:400; font-size:11px;">(Optional)</span></label>
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <input type="file" name="review_image" id="modal_review_photo_input" accept=".jpg,.jpeg,.png,.webp" style="display:none;" onchange="document.getElementById('modal_review_photo_name').innerText = this.files[0] ? this.files[0].name : '';">
-                    <button type="button" class="btn ghost sm" onclick="document.getElementById('modal_review_photo_input').click();">📷 Choose Photo</button>
+                <label class="form-label" style="display:block; margin-bottom:6px;">
+                    Attach Product Photos <span class="muted" style="font-weight:400; font-size:11px;">(Optional — Up to 5 photos)</span>
+                </label>
+                <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <input type="file" name="review_images[]" id="modal_review_photo_input" accept=".jpg,.jpeg,.png,.webp" multiple style="display:none;" onchange="handleModalReviewFileSelect(this)">
+                    <button type="button" class="btn ghost sm" onclick="document.getElementById('modal_review_photo_input').click();">📷 Choose Photos (Max 5)</button>
                     <span id="modal_review_photo_name" class="muted" style="font-size:12px;"></span>
                 </div>
-                <small class="muted" style="font-size:11px; display:block; margin-top:4px;">JPG, PNG, or WEBP (Max 3MB)</small>
+                <small class="muted" style="font-size:11px; display:block; margin-top:4px;">JPG, PNG, or WEBP (Max 3MB each, up to 5 photos)</small>
+
+                <div id="modal_review_photo_preview_box" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;"></div>
+                <div id="modal_existing_photos_box" style="display:none; margin-top:10px; font-size:11px;" class="muted">
+                    <span>Current photos:</span>
+                    <div id="modal_existing_photos_strip" style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap;"></div>
+                </div>
             </div>
 
             <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
@@ -394,7 +403,90 @@ function populateItemReview(item) {
     document.getElementById('modal-comment-input').value = comment;
     document.getElementById('modal_review_photo_name').innerText = '';
     
+    // Clear & setup photo previews
+    var previewBox = document.getElementById('modal_review_photo_preview_box');
+    if (previewBox) previewBox.innerHTML = '';
+    var existingBox = document.getElementById('modal_existing_photos_box');
+    var existingStrip = document.getElementById('modal_existing_photos_strip');
+    if (existingBox && existingStrip) {
+        existingStrip.innerHTML = '';
+        if (existing && existing.review_image) {
+            var raw = (existing.review_image || '').trim();
+            var imgs = [];
+            if (raw.startsWith('[') || raw.startsWith('{')) {
+                try { imgs = JSON.parse(raw); } catch(e) { imgs = [raw]; }
+            } else if (raw !== '') {
+                imgs = [raw];
+            }
+            if (imgs && imgs.length > 0) {
+                existingBox.style.display = 'block';
+                imgs.forEach(function(imgName) {
+                    var mThumb = document.createElement('img');
+                    mThumb.src = 'images/uploads/' + imgName;
+                    mThumb.style.width = '48px';
+                    mThumb.style.height = '48px';
+                    mThumb.style.objectFit = 'cover';
+                    mThumb.style.borderRadius = '6px';
+                    mThumb.style.border = '1px solid rgba(255,255,255,0.15)';
+                    existingStrip.appendChild(mThumb);
+                });
+            } else {
+                existingBox.style.display = 'none';
+            }
+        } else {
+            existingBox.style.display = 'none';
+        }
+    }
+    
     highlightModalStars(rating);
+}
+
+// Multi-photo selection and preview handler for modal
+function handleModalReviewFileSelect(input) {
+    var container = document.getElementById('modal_review_photo_preview_box');
+    var label = document.getElementById('modal_review_photo_name');
+    if (!container) return;
+    container.innerHTML = '';
+
+    var files = Array.from(input.files || []);
+    if (files.length === 0) {
+        if (label) label.innerText = '';
+        return;
+    }
+
+    if (files.length > 5) {
+        alert('You can upload a maximum of 5 photos. Showing the first 5 photos.');
+        files = files.slice(0, 5);
+    }
+
+    if (label) {
+        label.innerText = files.length + (files.length === 1 ? ' photo selected' : ' photos selected');
+    }
+
+    files.forEach(function(file) {
+        if (!file.type.match('image.*')) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var thumb = document.createElement('div');
+            thumb.style.position = 'relative';
+            thumb.style.width = '52px';
+            thumb.style.height = '52px';
+            thumb.style.borderRadius = '6px';
+            thumb.style.overflow = 'hidden';
+            thumb.style.border = '1px solid rgba(255,255,255,0.2)';
+            thumb.style.boxShadow = '0 2px 8px rgba(0,0,0,0.4)';
+
+            var img = document.createElement('img');
+            img.src = e.target.result;
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+
+            thumb.appendChild(img);
+            container.appendChild(thumb);
+        };
+        reader.readAsDataURL(file);
+    });
 }
 
 function closeReviewModal() {

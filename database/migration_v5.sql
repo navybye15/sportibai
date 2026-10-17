@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS reviews (
     user_id INT NOT NULL,
     rating TINYINT NOT NULL,
     comment TEXT NOT NULL,
-    review_image VARCHAR(255) NULL,
+    review_image TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_item_user_review (item_id, user_id),
