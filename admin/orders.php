@@ -58,10 +58,13 @@ if (isset($_POST['update_status'])) {
         }
 
         if ($new_status === 'Cancelled') {
-            // Return stock for all items
-            $sql    = "SELECT item_id, quantity FROM order_items WHERE order_id = ?";
+            // Return stock for all items (both per-size stock and total item stock)
+            $sql    = "SELECT item_id, selected_size, quantity FROM order_items WHERE order_id = ?";
             $result = mysqli_execute_query($conn, $sql, array($order_id));
             while ($row = mysqli_fetch_assoc($result)) {
+                if (!empty($row['selected_size'])) {
+                    mysqli_execute_query($conn, "UPDATE item_sizes SET stock = stock + ? WHERE item_id = ? AND size_label = ?", array($row['quantity'], $row['item_id'], $row['selected_size']));
+                }
                 $sql2 = "UPDATE items SET stock = stock + ? WHERE item_id = ?";
                 mysqli_execute_query($conn, $sql2, array($row['quantity'], $row['item_id']));
             }
@@ -153,7 +156,7 @@ while ($row = mysqli_fetch_assoc($result)) {
 $order_items = array();
 if (count($orders) > 0) {
     $ids    = implode(',', array_column($orders, 'order_id'));
-    $sql    = "SELECT oi.order_id, i.name, i.image, oi.quantity, oi.price
+    $sql    = "SELECT oi.order_id, i.name, i.image, oi.selected_size, oi.quantity, oi.price
                FROM order_items oi JOIN items i ON oi.item_id = i.item_id
                WHERE oi.order_id IN ($ids) ORDER BY oi.order_item_id";
     $result = mysqli_query($conn, $sql);
@@ -271,6 +274,11 @@ require '../includes/header.php';
                         <img src="<?= $img_src ?>" alt="" style="width:34px; height:34px; object-fit:cover; border-radius:6px; flex-shrink:0; background:rgba(255,255,255,0.05);">
                         <span style="font-size:13px; font-weight:500;">
                             <strong style="color:var(--color-accent-on-dark);"><?= htmlspecialchars($oi['quantity']) ?>x</strong> <?= htmlspecialchars($oi['name']) ?>
+                            <?php if (!empty($oi['selected_size'])) { ?>
+                                <span class="badge" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); font-size:10px; padding:1px 6px; margin-left:4px;">
+                                    Size: <?= htmlspecialchars($oi['selected_size']) ?>
+                                </span>
+                            <?php } ?>
                             <span class="muted" style="font-size:11px; margin-left:4px;">(<?= peso($oi['price']) ?>)</span>
                         </span>
                     </div>

@@ -30,7 +30,7 @@ if ($conn != null) {
 $order_items = array();
 if ($conn != null && count($orders) > 0) {
     $ids = implode(',', array_column($orders, 'order_id'));
-    $sql = "SELECT oi.order_id, i.item_id, i.name, i.image, oi.quantity, oi.price, c.name AS category
+    $sql = "SELECT oi.order_id, i.item_id, oi.selected_size, i.name, i.image, oi.quantity, oi.price, c.name AS category
             FROM order_items oi
             JOIN items i ON oi.item_id = i.item_id
             JOIN categories c ON i.category_id = c.category_id
@@ -208,7 +208,14 @@ require 'includes/header.php';
                         <?php item_tile($first_item, ''); ?>
                     </div>
                     <div style="flex-grow:1; display:flex; flex-direction:column; gap:4px;">
-                        <span style="font-weight:600; color:var(--color-fg);"><?= htmlspecialchars($first_item['name']) ?></span>
+                        <span style="font-weight:600; color:var(--color-fg);">
+                            <?= htmlspecialchars($first_item['name']) ?>
+                            <?php if (!empty($first_item['selected_size'])) { ?>
+                                <span class="badge" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); font-size:10px; padding:1px 6px; margin-left:4px; vertical-align:middle;">
+                                    Size: <?= htmlspecialchars($first_item['selected_size']) ?>
+                                </span>
+                            <?php } ?>
+                        </span>
                         <span class="muted" style="font-size:var(--text-body-sm);">
                             Qty: <?= $first_item['quantity'] ?> &nbsp;•&nbsp; <?= peso($first_item['price']) ?>
                         </span>

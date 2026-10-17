@@ -33,6 +33,47 @@ if (isset($_POST['delete_gallery_image'])) {
     exit;
 }
 
+// ── Delete a specific size variant (Option 1) ──────────────────────────────
+if (isset($_POST['delete_size_id'])) {
+    if (!csrf_verify()) {
+        header('Location: item_edit.php?id=' . $item_id);
+        exit;
+    }
+    $del_id = (int)$_POST['delete_size_id'];
+    mysqli_execute_query($conn, "DELETE FROM item_sizes WHERE size_id = ? AND item_id = ?", array($del_id, $item_id));
+    sync_item_total_stock($conn, $item_id);
+    $_SESSION['success'] = 'Size variant removed.';
+    header('Location: item_edit.php?id=' . $item_id);
+    exit;
+}
+
+// ── Initialize standard size variants (Option 1) ───────────────────────────
+if (isset($_POST['init_default_sizes'])) {
+    if (!csrf_verify()) {
+        header('Location: item_edit.php?id=' . $item_id);
+        exit;
+    }
+    $cat_res = mysqli_execute_query($conn, "SELECT category_id, stock FROM items WHERE item_id = ? LIMIT 1", array($item_id));
+    if ($crow = mysqli_fetch_assoc($cat_res)) {
+        $stype = category_supports_sizes($conn, (int)$crow['category_id']);
+        if ($stype) {
+            $defs = get_default_sizes_for_type($stype);
+            $count = count($defs);
+            $cur_stock = (int)$crow['stock'];
+            $per_sz = $count > 0 ? intdiv($cur_stock, $count) : 0;
+            $rem = $count > 0 ? ($cur_stock % $count) : 0;
+            foreach ($defs as $idx => $dlabel) {
+                $init_qty = $per_sz + ($idx < $rem ? 1 : 0);
+                mysqli_execute_query($conn, "INSERT IGNORE INTO item_sizes (item_id, size_label, stock) VALUES (?, ?, ?)", array($item_id, $dlabel, $init_qty));
+            }
+            sync_item_total_stock($conn, $item_id);
+            $_SESSION['success'] = 'Standard size variants initialized.';
+        }
+    }
+    header('Location: item_edit.php?id=' . $item_id);
+    exit;
+}
+
 // ── Save Item Changes (MP1 & MP5) ───────────────────────────────────────────
 if (isset($_POST['save'])) {
     if (!csrf_verify()) {
@@ -85,7 +126,29 @@ if (isset($_POST['save'])) {
             handle_multiple_item_images($_FILES['gallery_images'], $item_id, $conn);
         }
 
-        $_SESSION['success'] = 'Item and gallery photos updated successfully.';
+        // Update per-size stock breakdown (Option 1)
+        if (isset($_POST['size_stock']) && is_array($_POST['size_stock'])) {
+            foreach ($_POST['size_stock'] as $sid => $sqty) {
+                $sqty = max(0, (int)$sqty);
+                mysqli_execute_query($conn, "UPDATE item_sizes SET stock = ? WHERE size_id = ? AND item_id = ?", array($sqty, (int)$sid, $item_id));
+            }
+            sync_item_total_stock($conn, $item_id);
+        } elseif (isset($_POST['stock'])) {
+            $plain_stock = max(0, (int)$_POST['stock']);
+            mysqli_execute_query($conn, "UPDATE items SET stock = ? WHERE item_id = ?", array($plain_stock, $item_id));
+        }
+
+        // Add custom new size variant if provided
+        if (!empty($_POST['new_size_label'])) {
+            $new_lbl = strtoupper(trim(strip_tags($_POST['new_size_label'])));
+            $new_stk = max(0, (int)($_POST['new_size_stock'] ?? 0));
+            if ($new_lbl !== '') {
+                mysqli_execute_query($conn, "INSERT INTO item_sizes (item_id, size_label, stock) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE stock = stock + VALUES(stock)", array($item_id, $new_lbl, $new_stk));
+                sync_item_total_stock($conn, $item_id);
+            }
+        }
+
+        $_SESSION['success'] = 'Item and inventory updated successfully.';
         header('Location: items.php');
         exit;
     } catch (Exception $e) {
@@ -116,6 +179,11 @@ $g_res = mysqli_execute_query($conn, "SELECT * FROM item_images WHERE item_id = 
 while ($g = mysqli_fetch_assoc($g_res)) {
     $gallery_images[] = $g;
 }
+
+// Fetch per-size variants (Option 1)
+$item_sizes = get_item_sizes($conn, $item_id);
+$size_type = category_supports_sizes($conn, (int)$item['category_id']);
+$has_sizes = (count($item_sizes) > 0) || ($size_type !== false);
 
 $base = '../';
 $page_title = 'Edit Item | Sportibai';
@@ -166,6 +234,84 @@ require '../includes/header.php';
                 <?php } ?>
             </select>
         </div>
+
+        <!-- Option 1: Per-Size Variant Stock Management -->
+        <?php if ($has_sizes || $size_type) { ?>
+            <div class="card in" style="padding:1.25rem; border:1px solid rgba(224,35,28,0.3); background:rgba(20,20,25,0.7); margin-top:0.75rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:1rem;">
+                    <div>
+                        <div class="hero-eyebrow" style="color:var(--color-brand-red);">[ SIZE VARIANT INVENTORY ]</div>
+                        <h3 style="font-size:1.1rem; margin-top:4px;">Stock by Size (Total: <?= (int)$item['stock'] ?> units)</h3>
+                        <p class="muted" style="font-size:12px; margin-top:2px;">
+                            Manage individual stock for each size. Customers pick their size before adding to cart.
+                        </p>
+                    </div>
+                    <?php if (count($item_sizes) === 0 && $size_type) { ?>
+                        <button type="submit" name="init_default_sizes" class="btn ghost sm" style="font-size:11px;">
+                            ⚡ Auto-generate <?= $size_type === 'footwear' ? 'EU Shoe Sizes (39-45)' : 'Standard Sizes (XS-2XL)' ?>
+                        </button>
+                    <?php } ?>
+                </div>
+
+                <?php if (count($item_sizes) > 0) { ?>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                            <thead>
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.1); text-align:left; color:var(--color-muted);">
+                                    <th style="padding:8px 10px;">Size</th>
+                                    <th style="padding:8px 10px;">Stock Qty</th>
+                                    <th style="padding:8px 10px; text-align:center;">Status</th>
+                                    <th style="padding:8px 10px; text-align:right;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($item_sizes as $sz) { ?>
+                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                                        <td style="padding:8px 10px; font-weight:700; font-size:14px; color:var(--color-brand-red);">
+                                            <?= htmlspecialchars($sz['size_label']) ?>
+                                        </td>
+                                        <td style="padding:8px 10px;">
+                                            <input type="number" min="0" name="size_stock[<?= (int)$sz['size_id'] ?>]" value="<?= (int)$sz['stock'] ?>" style="width:90px; padding:6px 10px; font-size:13px; text-align:center; font-weight:600;">
+                                        </td>
+                                        <td style="padding:8px 10px; text-align:center;">
+                                            <?php if ($sz['stock'] <= 0) { ?>
+                                                <span class="status-badge" style="background:rgba(255,50,50,0.15); color:#ff6b6b; font-size:11px; padding:2px 8px;">Out of Stock</span>
+                                            <?php } elseif ($sz['stock'] < 5) { ?>
+                                                <span class="status-badge" style="background:rgba(255,180,50,0.15); color:#ffd166; font-size:11px; padding:2px 8px;">Low Stock (<?= $sz['stock'] ?>)</span>
+                                            <?php } else { ?>
+                                                <span class="status-badge" style="background:rgba(81,175,67,0.15); color:var(--color-brand-green); font-size:11px; padding:2px 8px;">In Stock</span>
+                                            <?php } ?>
+                                        </td>
+                                        <td style="padding:8px 10px; text-align:right;">
+                                            <button type="submit" name="delete_size_id" value="<?= (int)$sz['size_id'] ?>" onclick="return confirm('Remove size <?= htmlspecialchars($sz['size_label']) ?>?');" style="background:none; border:none; color:#ff6b6b; cursor:pointer; font-size:12px; text-decoration:underline;">
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <?php } ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php } else { ?>
+                    <p class="muted" style="font-size:12px; font-style:italic;">No size variants registered yet. Click "Auto-generate" above or add a size below.</p>
+                <?php } ?>
+
+                <!-- Add a new custom size -->
+                <div style="margin-top:1.25rem; padding-top:1rem; border-top:1px dashed rgba(255,255,255,0.1); display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <span style="font-size:12px; font-weight:600; color:var(--color-muted);">+ Add Size Variant:</span>
+                    <input type="text" name="new_size_label" placeholder="Size (e.g. 3XL, 46)" style="width:140px; padding:6px 10px; font-size:12px;">
+                    <input type="number" min="0" name="new_size_stock" placeholder="Initial Qty" value="0" style="width:100px; padding:6px 10px; font-size:12px;">
+                    <span class="muted" style="font-size:11px;">(Will be added upon clicking "Save Changes")</span>
+                </div>
+            </div>
+        <?php } else { ?>
+            <!-- Non-sized items stock display -->
+            <div style="margin-top:0.75rem;">
+                <label class="form-label">Current Stock (Units)</label>
+                <input type="number" min="0" name="stock" value="<?= (int)$item['stock'] ?>" style="margin-top:0.75rem;">
+                <p class="muted" style="font-size:11px; margin-top:4px;">Direct item stock for non-sized products (balls, accessories, etc.).</p>
+            </div>
+        <?php } ?>
 
         <!-- Primary Cover Image -->
         <div>

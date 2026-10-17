@@ -53,6 +53,20 @@ if (isset($_POST['add_item'])) {
             handle_multiple_item_images($_FILES['gallery_images'], $new_id, $conn);
         }
 
+        // Option 1: If category supports sizes (Apparel / Footwear), initialize default size variants
+        $size_type = category_supports_sizes($conn, $category_id);
+        if ($size_type) {
+            $default_sizes = get_default_sizes_for_type($size_type);
+            $sz_count = count($default_sizes);
+            $per_sz = $sz_count > 0 ? intdiv($stock, $sz_count) : 0;
+            $rem = $sz_count > 0 ? ($stock % $sz_count) : 0;
+            foreach ($default_sizes as $idx => $s_label) {
+                $s_stock = $per_sz + ($idx < $rem ? 1 : 0);
+                mysqli_execute_query($conn, "INSERT INTO item_sizes (item_id, size_label, stock) VALUES (?, ?, ?)", array($new_id, $s_label, $s_stock));
+            }
+            sync_item_total_stock($conn, $new_id);
+        }
+
         // Record initial stock in stock_log
         if ($stock > 0) {
             $user_id = $_SESSION['user_id'] ?? null;
@@ -60,7 +74,7 @@ if (isset($_POST['add_item'])) {
             @mysqli_execute_query($conn, $sql_log, array($new_id, $stock, $stock, $user_id));
         }
 
-        $_SESSION['success'] = 'Item published to store catalog with photos.';
+        $_SESSION['success'] = 'Item published to store catalog with photos' . ($size_type ? ' and size variants.' : '.');
     } catch (Exception $e) {
         $_SESSION['message'] = $e->getMessage();
     }
@@ -103,6 +117,7 @@ if (isset($_POST['adjust_stock'])) {
         exit;
     }
     $item_id = (int) $_POST['item_id'];
+    $size_id = isset($_POST['size_id']) ? (int)$_POST['size_id'] : 0;
     $qty_change = (int) $_POST['qty_change'];
     $operation = $_POST['operation'] ?? 'add'; // 'add' or 'deduct'
     $reason = strip_tags(trim($_POST['reason'] ?? ''));
@@ -118,20 +133,41 @@ if (isset($_POST['adjust_stock'])) {
     }
 
     if ($qty_change !== 0) {
-        $cur_res = mysqli_execute_query($conn, "SELECT stock, name FROM items WHERE item_id = ? LIMIT 1", array($item_id));
-        $cur_item = mysqli_fetch_assoc($cur_res);
-        if ($cur_item) {
-            $new_stock = max(0, $cur_item['stock'] + $qty_change);
-            $real_change = $new_stock - $cur_item['stock'];
+        if ($size_id > 0) {
+            // Adjust specific size variant (Option 1)
+            $sz_res = mysqli_execute_query($conn, "SELECT stock, size_label FROM item_sizes WHERE size_id = ? AND item_id = ? LIMIT 1", array($size_id, $item_id));
+            if ($sz_row = mysqli_fetch_assoc($sz_res)) {
+                $new_sz_stock = max(0, $sz_row['stock'] + $qty_change);
+                mysqli_execute_query($conn, "UPDATE item_sizes SET stock = ? WHERE size_id = ?", array($new_sz_stock, $size_id));
+                sync_item_total_stock($conn, $item_id);
 
-            $sql = "UPDATE items SET stock = ? WHERE item_id = ?";
-            mysqli_execute_query($conn, $sql, array($new_stock, $item_id));
+                $cur_res = mysqli_execute_query($conn, "SELECT stock, name FROM items WHERE item_id = ? LIMIT 1", array($item_id));
+                $cur_item = mysqli_fetch_assoc($cur_res);
+                $new_stock = $cur_item['stock'] ?? 0;
 
-            $user_id = $_SESSION['user_id'] ?? null;
-            $sql_log = "INSERT INTO stock_log (item_id, change_qty, new_stock, reason, user_id) VALUES (?, ?, ?, ?, ?)";
-            @mysqli_execute_query($conn, $sql_log, array($item_id, $real_change, $new_stock, $reason, $user_id));
+                $user_id = $_SESSION['user_id'] ?? null;
+                $sql_log = "INSERT INTO stock_log (item_id, change_qty, new_stock, reason, user_id) VALUES (?, ?, ?, ?, ?)";
+                @mysqli_execute_query($conn, $sql_log, array($item_id, $qty_change, $new_stock, $reason . ' (Size ' . $sz_row['size_label'] . ')', $user_id));
 
-            $_SESSION['success'] = 'Updated stock for ' . htmlspecialchars($cur_item['name']) . ' (New stock: ' . $new_stock . ').';
+                $_SESSION['success'] = 'Updated size ' . htmlspecialchars($sz_row['size_label']) . ' stock for ' . htmlspecialchars($cur_item['name']) . ' (New size stock: ' . $new_sz_stock . ').';
+            }
+        } else {
+            // Adjust non-sized item or general stock
+            $cur_res = mysqli_execute_query($conn, "SELECT stock, name FROM items WHERE item_id = ? LIMIT 1", array($item_id));
+            $cur_item = mysqli_fetch_assoc($cur_res);
+            if ($cur_item) {
+                $new_stock = max(0, $cur_item['stock'] + $qty_change);
+                $real_change = $new_stock - $cur_item['stock'];
+
+                $sql = "UPDATE items SET stock = ? WHERE item_id = ?";
+                mysqli_execute_query($conn, $sql, array($new_stock, $item_id));
+
+                $user_id = $_SESSION['user_id'] ?? null;
+                $sql_log = "INSERT INTO stock_log (item_id, change_qty, new_stock, reason, user_id) VALUES (?, ?, ?, ?, ?)";
+                @mysqli_execute_query($conn, $sql_log, array($item_id, $real_change, $new_stock, $reason, $user_id));
+
+                $_SESSION['success'] = 'Updated stock for ' . htmlspecialchars($cur_item['name']) . ' (New stock: ' . $new_stock . ').';
+            }
         }
     }
     header('Location: items.php');
@@ -156,6 +192,15 @@ $sql = "SELECT i.item_id, i.name, i.brand, i.price, i.cost_price, i.stock, i.ima
 $result = mysqli_execute_query($conn, $sql, array($active_val));
 while ($row = mysqli_fetch_assoc($result)) {
     $items[] = $row;
+}
+
+// Fetch all size variants mapped by item_id (Option 1)
+$item_sizes_map = array();
+$all_sizes_res = mysqli_query($conn, "SELECT item_id, size_id, size_label, stock FROM item_sizes ORDER BY size_id ASC");
+if ($all_sizes_res) {
+    while ($srow = mysqli_fetch_assoc($all_sizes_res)) {
+        $item_sizes_map[$srow['item_id']][] = $srow;
+    }
 }
 
 // Counts for tabs
@@ -278,18 +323,37 @@ require '../includes/header.php';
                         <?php if ($cost > 0) { ?>
                             <span>Cost: <strong><?php echo peso($cost); ?></strong> (<?= round($margin, 1) ?>% profit)</span>
                         <?php } ?>
-                        <span>Stock: <strong style="<?php echo $item['stock'] < 5 ? 'color:#ff9f96;' : 'color:var(--color-brand-green);'; ?>"><?php echo $item['stock']; ?> units</strong></span>
+                        <span>Total Stock: <strong style="<?php echo $item['stock'] < 5 ? 'color:#ff9f96;' : 'color:var(--color-brand-green);'; ?>"><?php echo $item['stock']; ?> units</strong></span>
                     </div>
+
+                    <?php if (!empty($item_sizes_map[$item['item_id']])) { ?>
+                        <!-- Per-size variant inventory pills -->
+                        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; align-items:center;">
+                            <span class="muted" style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; font-weight:600;">Sizes:</span>
+                            <?php foreach ($item_sizes_map[$item['item_id']] as $sz_info) { ?>
+                                <span style="font-size:11px; padding:2px 7px; border-radius:4px; background:rgba(255,255,255,0.06); border:1px solid <?= $sz_info['stock'] > 0 ? 'rgba(255,255,255,0.12)' : 'rgba(255,50,50,0.3)' ?>; <?= $sz_info['stock'] <= 0 ? 'color:#ff6b6b; opacity:0.8;' : '' ?>">
+                                    <strong><?= htmlspecialchars($sz_info['size_label']) ?></strong>: <?= (int)$sz_info['stock'] ?>
+                                </span>
+                            <?php } ?>
+                        </div>
+                    <?php } ?>
                 </div>
 
                 <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; justify-content:flex-end;">
                     <?php if (!$is_archived_view) { ?>
                         <a class="btn ghost sm" href="item_edit.php?id=<?php echo $item['item_id']; ?>">Edit</a>
 
-                        <!-- Stock Adjustment Form with Reason -->
+                        <!-- Stock Adjustment Form with Reason & Size Support -->
                         <form method="POST" action="items.php" style="display:inline-flex; gap:.4rem; align-items:center;">
                             <?= csrf_field() ?>
                             <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
+                            <?php if (!empty($item_sizes_map[$item['item_id']])) { ?>
+                                <select name="size_id" class="search" style="padding:0.4rem 0.5rem; font-size:11px; max-width:7.5rem;">
+                                    <?php foreach ($item_sizes_map[$item['item_id']] as $sz_opt) { ?>
+                                        <option value="<?= $sz_opt['size_id'] ?>"><?= htmlspecialchars($sz_opt['size_label']) ?> (<?= $sz_opt['stock'] ?>)</option>
+                                    <?php } ?>
+                                </select>
+                            <?php } ?>
                             <select name="operation" class="search" style="padding:0.4rem 0.6rem; min-width:4.8rem; font-size:11px;">
                                 <option value="add">+ Add</option>
                                 <option value="deduct">- Deduct</option>

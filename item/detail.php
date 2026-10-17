@@ -14,6 +14,8 @@ if ($item == null) {
     header('Location: ../index.php');
     exit;
 }
+$item_sizes = get_item_sizes($conn, $id);
+$has_sizes = count($item_sizes) > 0;
 
 // ── Review Submission / Update (MP4 Requirement: Review CRUD) ───────────────
 if (isset($_POST['submit_review'])) {
@@ -213,12 +215,91 @@ require '../includes/header.php';
         </div>
 
         <?php if ($item['stock'] > 0) { ?>
-            <form method="post" action="../cart_update.php" style="margin-top:0.5rem">
+            <form method="post" action="../cart_update.php" id="add-to-cart-form" style="margin-top:1rem;">
                 <input type="hidden" name="action" value="add">
                 <input type="hidden" name="item_id" value="<?= $item['item_id'] ?>">
+                <input type="hidden" name="size" id="selected-size-input" value="">
                 <input type="hidden" name="return_url" value="item/detail.php?id=<?= $item['item_id'] ?>">
-                <button class="btn" style="width:100%" type="submit">Add to cart</button>
+
+                <?php if ($has_sizes) { ?>
+                    <div class="size-selector-block">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <label style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--color-fg); display:flex; align-items:center; gap:6px;">
+                                <span>Select Size</span>
+                                <span style="color:#ff5a3c;">*</span>
+                            </label>
+                            <span id="selected-size-status" class="muted" style="font-size:12px; font-weight:600;">Choose a size</span>
+                        </div>
+                        
+                        <div class="size-pill-grid" id="size-pill-grid">
+                            <?php foreach ($item_sizes as $sz) { 
+                                $s_label = htmlspecialchars($sz['size_label']);
+                                $s_stock = (int)$sz['stock'];
+                                $is_out = ($s_stock <= 0);
+                            ?>
+                                <button type="button" 
+                                        class="size-pill <?= $is_out ? 'disabled' : '' ?>"
+                                        data-size="<?= $s_label ?>"
+                                        data-stock="<?= $s_stock ?>"
+                                        <?= $is_out ? 'disabled' : '' ?>
+                                        title="<?= $is_out ? 'Out of stock' : ($s_stock . ' in stock') ?>">
+                                    <span class="size-text"><?= $s_label ?></span>
+                                    <?php if ($is_out) { ?>
+                                        <span style="font-size:10px; opacity:0.6; margin-left:2px;">(0)</span>
+                                    <?php } ?>
+                                </button>
+                            <?php } ?>
+                        </div>
+                        <div id="size-error-notice" style="display:none; color:#ff9f96; font-size:12px; margin-top:8px; font-weight:600;">
+                            ⚠️ Please pick a size before adding to cart.
+                        </div>
+                    </div>
+                <?php } ?>
+
+                <button class="btn" id="add-to-cart-submit" style="width:100%" type="submit">Add to cart</button>
             </form>
+
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var form = document.getElementById('add-to-cart-form');
+                var sizeInput = document.getElementById('selected-size-input');
+                var sizePills = document.querySelectorAll('.size-pill');
+                var statusLabel = document.getElementById('selected-size-status');
+                var errorNotice = document.getElementById('size-error-notice');
+                var hasSizes = <?= $has_sizes ? 'true' : 'false' ?>;
+
+                sizePills.forEach(function(pill) {
+                    pill.addEventListener('click', function() {
+                        if (this.disabled || this.classList.contains('disabled')) return;
+                        sizePills.forEach(function(p) { p.classList.remove('active'); });
+                        this.classList.add('active');
+                        var sz = this.getAttribute('data-size');
+                        var stk = this.getAttribute('data-stock');
+                        if (sizeInput) sizeInput.value = sz;
+                        if (statusLabel) {
+                            statusLabel.innerHTML = '<strong style="color:var(--color-fg); font-size:13px;">Size ' + sz + '</strong> <span style="opacity:0.75; font-size:11px;">(' + stk + ' left)</span>';
+                        }
+                        if (errorNotice) errorNotice.style.display = 'none';
+                    });
+                });
+
+                if (form && hasSizes) {
+                    form.addEventListener('submit', function(e) {
+                        if (!sizeInput || sizeInput.value.trim() === '') {
+                            e.preventDefault();
+                            if (errorNotice) errorNotice.style.display = 'block';
+                            var grid = document.getElementById('size-pill-grid');
+                            if (grid) {
+                                grid.style.transform = 'translateX(-5px)';
+                                setTimeout(function() { grid.style.transform = 'translateX(5px)'; }, 90);
+                                setTimeout(function() { grid.style.transform = 'translateX(-3px)'; }, 180);
+                                setTimeout(function() { grid.style.transform = 'translateX(0)'; }, 270);
+                            }
+                        }
+                    });
+                }
+            });
+            </script>
         <?php } ?>
 
         <div style="margin-top: 0.5rem;">

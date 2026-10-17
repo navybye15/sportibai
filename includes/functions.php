@@ -448,3 +448,56 @@ function check_user_session($conn) {
     }
 }
 
+// ── Item Size & Variant Management (Apparel & Footwear) ─────────────────────
+function get_item_sizes($conn, $item_id) {
+    if (!$conn || !(int)$item_id) return array();
+    $sql = "SELECT size_id, item_id, size_label, stock FROM item_sizes WHERE item_id = ? ORDER BY size_id ASC";
+    $res = mysqli_execute_query($conn, $sql, array((int)$item_id));
+    $sizes = array();
+    while ($row = mysqli_fetch_assoc($res)) {
+        $sizes[] = $row;
+    }
+    return $sizes;
+}
+
+function get_item_size_stock($conn, $item_id, $size_label) {
+    if (!$conn) return 0;
+    $sql = "SELECT stock FROM item_sizes WHERE item_id = ? AND size_label = ? LIMIT 1";
+    $res = mysqli_execute_query($conn, $sql, array((int)$item_id, trim($size_label)));
+    if ($row = mysqli_fetch_assoc($res)) {
+        return (int)$row['stock'];
+    }
+    return 0;
+}
+
+function category_supports_sizes($category_name) {
+    $cat = strtolower(trim($category_name));
+    if (in_array($cat, array('apparel', 'apparels', 'clothing', 'shirts', 'jerseys', 'shorts', 'wear'))) {
+        return 'apparel';
+    }
+    if (in_array($cat, array('footwear', 'shoes', 'kicks', 'sneakers'))) {
+        return 'footwear';
+    }
+    return false;
+}
+
+function get_default_sizes_for_type($type) {
+    if ($type === 'apparel') {
+        return array('XS', 'S', 'M', 'L', 'XL', '2XL');
+    }
+    if ($type === 'footwear') {
+        return array('EU 39', 'EU 40', 'EU 41', 'EU 42', 'EU 43', 'EU 44', 'EU 45');
+    }
+    return array();
+}
+
+function sync_item_total_stock($conn, $item_id) {
+    if (!$conn || !(int)$item_id) return;
+    $chk = mysqli_execute_query($conn, "SELECT COUNT(*) AS cnt, SUM(stock) AS total_stock FROM item_sizes WHERE item_id = ?", array((int)$item_id));
+    $row = mysqli_fetch_assoc($chk);
+    if ((int)$row['cnt'] > 0) {
+        $tot = (int)$row['total_stock'];
+        mysqli_execute_query($conn, "UPDATE items SET stock = ? WHERE item_id = ?", array($tot, (int)$item_id));
+    }
+}
+

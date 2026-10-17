@@ -90,13 +90,32 @@ if (isset($_POST['place_order'])) {
         // Re-check prices and stock from DB — never trust the cart
         $total      = 0;
         $line_items = array();
-        foreach ($cart as $item_id => $qty) {
+        foreach ($cart as $cart_key => $qty) {
             if ($qty < 1) throw new Exception('An item in your cart has an invalid quantity.');
+            $parts = explode('_', (string)$cart_key, 2);
+            $item_id = (int)$parts[0];
+            $selected_size = $parts[1] ?? '';
+
             $sql    = "SELECT item_id, name, price, stock FROM items WHERE item_id = ? AND is_active = 1 LIMIT 1";
             $result = mysqli_execute_query($conn, $sql, array($item_id));
             $item   = mysqli_fetch_assoc($result);
             if ($item === null) throw new Exception('An item in your cart is no longer available.');
 
+            if ($selected_size !== '') {
+                $size_stock = get_item_size_stock($conn, $item_id, $selected_size);
+                if ($qty > $size_stock) {
+                    throw new Exception('Not enough stock left for ' . $item['name'] . ' (Size: ' . $selected_size . '). Available: ' . $size_stock);
+                }
+
+                // Deduct from item_sizes
+                $size_sql = "UPDATE item_sizes SET stock = stock - ? WHERE item_id = ? AND size_label = ? AND stock >= ?";
+                mysqli_execute_query($conn, $size_sql, array($qty, $item_id, $selected_size, $qty));
+                if (mysqli_affected_rows($conn) !== 1) {
+                    throw new Exception('Could not update size stock for ' . $item['name'] . ' (Size: ' . $selected_size . ').');
+                }
+            }
+
+            // Deduct from items overall stock
             $sql = "UPDATE items SET stock = stock - ? WHERE item_id = ? AND stock >= ?";
             mysqli_execute_query($conn, $sql, array($qty, $item_id, $qty));
             if (mysqli_affected_rows($conn) !== 1) {
@@ -105,7 +124,7 @@ if (isset($_POST['place_order'])) {
 
             $subtotal     = $item['price'] * $qty;
             $total       += $subtotal;
-            $line_items[] = array('item_id' => $item_id, 'qty' => $qty, 'price' => $item['price']);
+            $line_items[] = array('item_id' => $item_id, 'selected_size' => $selected_size, 'qty' => $qty, 'price' => $item['price']);
         }
         $recipient_name = strip_tags(trim($_POST['recipient_name'] ?? ''));
         if ($recipient_name === '') {
@@ -129,10 +148,11 @@ if (isset($_POST['place_order'])) {
         $sql = "UPDATE orders SET reference_number = ? WHERE order_id = ?";
         mysqli_execute_query($conn, $sql, array($ref_number, $order_id));
 
-        // Insert order items
+        // Insert order items with selected size
         foreach ($line_items as $line) {
-            $sql = "INSERT INTO order_items (order_id, item_id, quantity, price) VALUES (?, ?, ?, ?)";
-            mysqli_execute_query($conn, $sql, array($order_id, $line['item_id'], $line['qty'], $line['price']));
+            $sql = "INSERT INTO order_items (order_id, item_id, selected_size, quantity, price) VALUES (?, ?, ?, ?, ?)";
+            $sz_val = $line['selected_size'] !== '' ? $line['selected_size'] : null;
+            mysqli_execute_query($conn, $sql, array($order_id, $line['item_id'], $sz_val, $line['qty'], $line['price']));
         }
 
         // Log the initial Pending status
@@ -163,12 +183,16 @@ if (isset($_POST['place_order'])) {
 // ── Build cart lines for display ──────────────────────────────────────────────
 $total = 0;
 $lines = array();
-foreach ($cart as $item_id => $qty) {
+foreach ($cart as $cart_key => $qty) {
+    $parts = explode('_', (string)$cart_key, 2);
+    $item_id = (int)$parts[0];
+    $selected_size = $parts[1] ?? '';
+
     $item = find_item($conn, $item_id);
     if ($item !== null) {
         $subtotal = $item['price'] * $qty;
         $total   += $subtotal;
-        $lines[]  = array('item' => $item, 'qty' => $qty, 'subtotal' => $subtotal);
+        $lines[]  = array('item' => $item, 'selected_size' => $selected_size, 'qty' => $qty, 'subtotal' => $subtotal);
     }
 }
 
@@ -331,7 +355,14 @@ require 'includes/header.php';
                         <div class="co-item-row">
                             <?php item_tile($line['item'], ''); ?>
                             <div class="co-item-info">
-                                <span style="font-weight:600; line-height:1.3;"><?= htmlspecialchars($line['item']['name']) ?></span>
+                                <span style="font-weight:600; line-height:1.3;">
+                                    <?= htmlspecialchars($line['item']['name']) ?>
+                                    <?php if (!empty($line['selected_size'])) { ?>
+                                        <span class="badge" style="background:rgba(255,255,255,0.08); color:var(--color-fg); border:1px solid rgba(255,255,255,0.2); font-size:10px; padding:1px 6px; margin-left:4px;">
+                                            Size: <?= htmlspecialchars($line['selected_size']) ?>
+                                        </span>
+                                    <?php } ?>
+                                </span>
                                 <span class="muted" style="font-size:var(--text-body-sm);">Qty: <?= $line['qty'] ?></span>
                             </div>
                             <span style="font-weight:700; color:var(--color-fg); white-space:nowrap;">

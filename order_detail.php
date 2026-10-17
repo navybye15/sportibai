@@ -38,7 +38,7 @@ if ($order === null) {
 // ── Load order items ──────────────────────────────────────────────────────────
 $items = array();
 if ($conn != null) {
-    $sql = "SELECT i.item_id, i.name, i.image, oi.quantity, oi.price
+    $sql = "SELECT i.item_id, i.name, i.image, oi.selected_size, oi.quantity, oi.price
             FROM order_items oi
             JOIN items i ON oi.item_id = i.item_id
             WHERE oi.order_id = ?
@@ -169,7 +169,14 @@ $banner = $status_banners[$order['status']] ?? array('title' => $order['status']
                         <div class="detail-item-thumb tile" style="--h:<?= tile_hue($item['item_id']) ?>; aspect-ratio:1; border-radius:var(--radius-md);"></div>
                     <?php } ?>
                     <div class="detail-item-info">
-                        <span style="font-weight:600;"><?= htmlspecialchars($item['name']) ?></span>
+                        <span style="font-weight:600;">
+                            <?= htmlspecialchars($item['name']) ?>
+                            <?php if (!empty($item['selected_size'])) { ?>
+                                <span class="badge" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); color:var(--color-fg); font-size:11px; padding:2px 7px; margin-left:6px; vertical-align:middle;">
+                                    Size: <?= htmlspecialchars($item['selected_size']) ?>
+                                </span>
+                            <?php } ?>
+                        </span>
                         <span class="muted" style="font-size:var(--text-body-sm);">
                             <?= $item['quantity'] ?> × <?= peso($item['price']) ?>
                         </span>

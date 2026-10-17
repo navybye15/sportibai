@@ -42,9 +42,14 @@ $total = 0;
         </div>
     <?php } ?>
 
-    <?php foreach ($cart as $id => $qty) {
+    <?php foreach ($cart as $cart_key => $qty) {
+        $parts = explode('_', (string)$cart_key, 2);
+        $id = (int)$parts[0];
+        $selected_size = $parts[1] ?? '';
+
         $item = find_item($conn, $id);
         if ($item != null) {
+            $max_stock = ($selected_size !== '') ? get_item_size_stock($conn, $id, $selected_size) : (int)$item['stock'];
             $sub = $item['price'] * $qty;
             $total = $total + $sub; ?>
         <div class="line">
@@ -53,13 +58,27 @@ $total = 0;
                 <span class="brand-tag" style="font-size:var(--text-label); letter-spacing:var(--tracking-label); text-transform:uppercase; color:var(--color-accent-on-dark); font-weight:600;">
                     <?= htmlspecialchars($item['brand'] != '' ? $item['brand'] : $item['category']) ?>
                 </span>
-                <h2 style="font-size:1.15rem; margin-top:2px;"><?= htmlspecialchars($item['name']) ?></h2>
-                <span class="muted" style="font-size:var(--text-body-sm)"><?= peso($item['price']) ?> each &nbsp;•&nbsp; <strong style="color:var(--color-fg)"><?= peso($sub) ?> total</strong></span>
+                <h2 style="font-size:1.15rem; margin-top:2px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <?= htmlspecialchars($item['name']) ?>
+                    <?php if ($selected_size !== '') { ?>
+                        <span class="badge" style="background:rgba(255,255,255,0.08); color:var(--color-fg); border:1px solid rgba(255,255,255,0.2); font-size:11px; padding:2px 8px; vertical-align:middle; letter-spacing:0.04em;">
+                            Size: <?= htmlspecialchars($selected_size) ?>
+                        </span>
+                    <?php } ?>
+                </h2>
+                <span class="muted" style="font-size:var(--text-body-sm)">
+                    <?= peso($item['price']) ?> each &nbsp;•&nbsp; <strong style="color:var(--color-fg)"><?= peso($sub) ?> total</strong>
+                    <?php if ($selected_size !== '') { ?>
+                        &nbsp;•&nbsp; <span style="font-size:11px; opacity:0.8;"><?= $max_stock ?> in stock (Size <?= htmlspecialchars($selected_size) ?>)</span>
+                    <?php } ?>
+                </span>
             </div>
             <form method="post" action="cart_update.php" style="display:flex; align-items:center; gap:0.5rem;">
+                <input type="hidden" name="cart_key" value="<?= htmlspecialchars($cart_key) ?>">
                 <input type="hidden" name="item_id" value="<?= $id ?>">
+                <input type="hidden" name="size" value="<?= htmlspecialchars($selected_size) ?>">
                 <input type="hidden" name="back" value="cart">
-                <input class="qty" type="number" name="qty" min="0" max="<?= $item['stock'] ?>" value="<?= $qty ?>">
+                <input class="qty" type="number" name="qty" min="0" max="<?= $max_stock ?>" value="<?= $qty ?>">
                 <button class="btn ghost sm" type="submit" name="action" value="update">Update</button>
                 <button class="btn ghost sm" type="submit" name="action" value="remove" style="color:#ff9f96; border-color:rgba(255,100,100,0.2);">Remove</button>
             </form>

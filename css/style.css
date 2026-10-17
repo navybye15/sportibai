@@ -2282,4 +2282,69 @@ select.search option {
   }
 }
 
+/* =============================================================================
+   PRODUCT VARIANT & SIZE SELECTOR (Apparel & Footwear)
+============================================================================= */
+.size-selector-block {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  margin: 1.25rem 0;
+  transition: border-color 0.25s ease;
+}
+
+.size-pill-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  transition: transform 0.15s ease;
+}
+
+.size-pill {
+  min-width: 52px;
+  height: 40px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-fg);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  outline: none;
+}
+
+.size-pill:hover:not(:disabled):not(.disabled) {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.09);
+  transform: translateY(-2px);
+}
+
+.size-pill.active {
+  border-color: var(--color-accent-on-dark, #ff4a3f);
+  background: var(--color-accent, #e0231c);
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(224, 35, 28, 0.5);
+  transform: scale(1.04);
+}
+
+.size-pill:disabled,
+.size-pill.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.02);
+  text-decoration: line-through;
+  color: var(--color-fg-muted);
+}
+
+
 
