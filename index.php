@@ -92,16 +92,6 @@ $cat_hues = array(200, 260, 40, 160, 310, 20, 180, 340);
                     Search
                 </button>
             </form>
-            <div style="margin-top:0.65rem; font-size:11px; opacity:0.55; display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
-                <span>Popular:</span>
-                <a href="shop.php?q=Basketball" style="color:inherit; text-decoration:underline;">Basketball</a>
-                <span>•</span>
-                <a href="shop.php?q=Shoes" style="color:inherit; text-decoration:underline;">Shoes</a>
-                <span>•</span>
-                <a href="shop.php?q=Nike" style="color:inherit; text-decoration:underline;">Nike</a>
-                <span>•</span>
-                <a href="shop.php?q=Dumbbell" style="color:inherit; text-decoration:underline;">Dumbbell</a>
-            </div>
         </div>
         <div class="home-hero-visual reveal">
             <div class="spotibai-3d-wrap">
@@ -110,10 +100,6 @@ $cat_hues = array(200, 260, 40, 160, 310, 20, 180, 340);
                 <div id="spotibai-3d-loader" class="spotibai-3d-loader">
                     <span style="font-size:1.75rem;">⚙️</span>
                     <span>Loading 3D Spotibai Core…</span>
-                </div>
-                <div class="spotibai-3d-badge">
-                    <span class="spotibai-3d-badge-dot"></span>
-                    <span>Hold &amp; Drag to Rotate in 3D</span>
                 </div>
             </div>
         </div>
@@ -174,9 +160,6 @@ $highlight_posters = array(
             </p>
         </div>
         <div style="display:flex; align-items:center; gap:12px;">
-            <span class="muted" style="font-size:11px; letter-spacing:0.04em; text-transform:uppercase;">
-                ⚡ Continuous Loop
-            </span>
             <a href="shop.php" class="btn ghost sm" style="padding:0.5rem 1.25rem;">
                 Browse All Gear →
             </a>
