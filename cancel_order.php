@@ -44,10 +44,13 @@ try {
         throw new Exception('This order can no longer be cancelled (it has already been ' . $order['status'] . ').');
     }
 
-    // Return each item's quantity back to stock
-    $sql = "SELECT item_id, quantity FROM order_items WHERE order_id = ?";
+    // Return each item's quantity back to stock (including specific size stock)
+    $sql = "SELECT item_id, quantity, selected_size FROM order_items WHERE order_id = ?";
     $result = mysqli_execute_query($conn, $sql, array($order_id));
     while ($row = mysqli_fetch_assoc($result)) {
+        if (!empty($row['selected_size'])) {
+            mysqli_execute_query($conn, "UPDATE item_sizes SET stock = stock + ? WHERE item_id = ? AND size_label = ?", array($row['quantity'], $row['item_id'], $row['selected_size']));
+        }
         $sql2 = "UPDATE items SET stock = stock + ? WHERE item_id = ?";
         mysqli_execute_query($conn, $sql2, array($row['quantity'], $row['item_id']));
     }
