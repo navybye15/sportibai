@@ -123,49 +123,109 @@ $cat_hues = array(200, 260, 40, 160, 310, 20, 180, 340);
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
-     CATEGORY HIGHLIGHTS
+     FULL-SCREEN INFINITE HIGHLIGHTS MARQUEE (With Hover Focus)
 ═══════════════════════════════════════════════════════════════════════════ -->
-<section class="home-section">
-    <div class="home-section-header reveal-blur">
-        <div class="hero-eyebrow">[ SHOP BY CATEGORY ]</div>
-        <h2 class="home-section-title">Highlights</h2>
-        <p class="muted" style="max-width:48ch; margin-top:.5rem;">
-            Browse our curated selection of sports gear, from court to track.
-        </p>
-    </div>
-
-    <div class="highlights-grid">
-        <?php if (count($categories) === 0) {
-            $static = array(
-                array('name'=>'Balls','item_count'=>0),
-                array('name'=>'Footwear','item_count'=>0),
-                array('name'=>'Apparel','item_count'=>0),
-                array('name'=>'Weights','item_count'=>0),
-            );
-            $categories = $static;
-        }
-        foreach ($categories as $i => $cat) {
-            $icon = $cat_icons[$cat['name']] ?? '🏅';
-            $hue  = $cat_hues[$i % count($cat_hues)];
-        ?>
-            <a href="shop.php?cat=<?= urlencode($cat['name']) ?>" class="highlight-card reveal-blur" style="--ch:<?= $hue ?>; transition-delay:<?= $i * 65 ?>ms;">
-                <div class="highlight-glow"></div>
-                <div class="highlight-card-icon-wrap">
-                    <span class="highlight-card-icon"><?= $icon ?></span>
-                </div>
-                <div class="highlight-card-info">
-                    <span class="highlight-card-name"><?= htmlspecialchars($cat['name']) ?></span>
-                    <span class="highlight-card-count">
-                        <?= $cat['item_count'] ?> item<?= $cat['item_count'] !== 1 ? 's' : '' ?>
-                    </span>
-                </div>
-                <span class="highlight-card-arrow">→</span>
+<?php
+$highlight_posters = array(
+    array(
+        'image' => 'images/highlights/highlight-1.jpg',
+        'badge' => 'FITNESS & STRENGTH',
+        'title' => 'Heavy Iron & Gym Gear',
+        'desc' => 'Dumbbells, weights, and high-performance gym essentials.',
+        'link' => 'shop.php?cat=Fitness'
+    ),
+    array(
+        'image' => 'images/highlights/highlight-2.jpg',
+        'badge' => 'ATHLETE GEAR',
+        'title' => 'Signature SpotiBai Caps',
+        'desc' => 'Official athletic caps, training bottles, and pro essentials.',
+        'link' => 'shop.php?cat=Accessories'
+    ),
+    array(
+        'image' => 'images/highlights/highlight-3.jpg',
+        'badge' => 'FOOTWEAR & KICKS',
+        'title' => 'Court & Running Kicks',
+        'desc' => 'High-cushion responsive footwear with sizes EU 39 to 45.',
+        'link' => 'shop.php?cat=Footwear'
+    ),
+    array(
+        'image' => 'images/highlights/highlight-4.jpg',
+        'badge' => 'BALL SPORTS',
+        'title' => 'Game Balls & Hoop Tees',
+        'desc' => 'Mikasa match balls, basketballs, and signature graphic wear.',
+        'link' => 'shop.php?cat=Ball+Sports'
+    ),
+    array(
+        'image' => 'images/highlights/highlight-5.jpg',
+        'badge' => 'DRY-FIT APPAREL',
+        'title' => 'Elite Athletic Wear',
+        'desc' => 'Breathable jerseys, training tanks, and compression gear.',
+        'link' => 'shop.php?cat=Apparel'
+    ),
+);
+?>
+<section class="highlights-fullscreen-section reveal">
+    <div class="highlights-fullscreen-header">
+        <div>
+            <div class="hero-eyebrow">[ ATHLETE SHOWCASE ]</div>
+            <h2 class="home-section-title" style="margin-top:6px;">Highlights</h2>
+            <p class="muted" style="max-width:52ch; margin-top:.4rem; font-size:14px;">
+                Gear trusted on the court, track, and gym floor. Hover over any poster to pause &amp; spotlight.
+            </p>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+            <span class="muted" style="font-size:11px; letter-spacing:0.04em; text-transform:uppercase;">
+                ⚡ Continuous Loop
+            </span>
+            <a href="shop.php" class="btn ghost sm" style="padding:0.5rem 1.25rem;">
+                Browse All Gear →
             </a>
-        <?php } ?>
+        </div>
     </div>
 
-    <div style="text-align:center; margin-top:2.5rem;" class="reveal-blur">
-        <a href="shop.php" class="btn ghost">View All Gear →</a>
+    <!-- Infinite Carousel Viewport -->
+    <div class="highlights-carousel-viewport" id="highlightsViewport" title="Hover over any card to pause and focus">
+        <div class="highlights-carousel-track" id="highlightsTrack">
+            <!-- Set 1 -->
+            <?php foreach ($highlight_posters as $idx => $hp) { ?>
+                <a href="<?= $hp['link'] ?>" class="highlight-poster-card" id="hl-card-1-<?= $idx ?>">
+                    <div class="highlight-poster-bg" style="background-image: url('<?= $hp['image'] ?>');"></div>
+                    <div class="highlight-poster-overlay"></div>
+                    <div class="highlight-poster-top">
+                        <span class="highlight-poster-badge">
+                            <span class="highlight-poster-badge-dot"></span>
+                            <?= $hp['badge'] ?>
+                        </span>
+                        <span style="font-size:18px; opacity:0.75; transform:rotate(-45deg); display:inline-block;">➜</span>
+                    </div>
+                    <div class="highlight-poster-bottom">
+                        <h3 class="highlight-poster-title"><?= $hp['title'] ?></h3>
+                        <p class="highlight-poster-desc"><?= $hp['desc'] ?></p>
+                        <span class="highlight-poster-cta">Explore Collection <span>→</span></span>
+                    </div>
+                </a>
+            <?php } ?>
+
+            <!-- Set 2 (Duplicate for seamless infinite marquee loop) -->
+            <?php foreach ($highlight_posters as $idx => $hp) { ?>
+                <a href="<?= $hp['link'] ?>" class="highlight-poster-card" id="hl-card-2-<?= $idx ?>" aria-hidden="true">
+                    <div class="highlight-poster-bg" style="background-image: url('<?= $hp['image'] ?>');"></div>
+                    <div class="highlight-poster-overlay"></div>
+                    <div class="highlight-poster-top">
+                        <span class="highlight-poster-badge">
+                            <span class="highlight-poster-badge-dot"></span>
+                            <?= $hp['badge'] ?>
+                        </span>
+                        <span style="font-size:18px; opacity:0.75; transform:rotate(-45deg); display:inline-block;">➜</span>
+                    </div>
+                    <div class="highlight-poster-bottom">
+                        <h3 class="highlight-poster-title"><?= $hp['title'] ?></h3>
+                        <p class="highlight-poster-desc"><?= $hp['desc'] ?></p>
+                        <span class="highlight-poster-cta">Explore Collection <span>→</span></span>
+                    </div>
+                </a>
+            <?php } ?>
+        </div>
     </div>
 </section>
 
