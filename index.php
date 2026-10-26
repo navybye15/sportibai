@@ -23,6 +23,7 @@ if ($conn != null) {
 
 // ── Load 4 Featured / Best-Selling Items ──────────────────────────────────────
 $featured_items = array();
+$featured_sizes = array();
 if ($conn != null) {
     $sql_feat = "SELECT i.item_id, i.name, i.brand, i.description, i.price, i.stock, i.image, c.name AS category
                  FROM items i
@@ -34,6 +35,17 @@ if ($conn != null) {
     if ($res_feat) {
         while ($row = mysqli_fetch_assoc($res_feat)) {
             $featured_items[] = $row;
+        }
+    }
+
+    if (!empty($featured_items)) {
+        $feat_ids = array_column($featured_items, 'item_id');
+        $in_clause = implode(',', array_map('intval', $feat_ids));
+        $sz_res = mysqli_query($conn, "SELECT size_id, item_id, size_label, stock FROM item_sizes WHERE item_id IN ($in_clause) ORDER BY size_id ASC");
+        if ($sz_res) {
+            while ($srow = mysqli_fetch_assoc($sz_res)) {
+                $featured_sizes[$srow['item_id']][] = $srow;
+            }
         }
     }
 }
@@ -74,7 +86,7 @@ $cat_hues = array(200, 260, 40, 160, 310, 20, 180, 340);
                     Shop Now →
                 </a>
                 <?php if (!isset($_SESSION['user_id'])) { ?>
-                    <a href="register.php" class="btn ghost" style="padding:0.9rem 1.75rem; font-size:12px;">
+                    <a href="auth/register.php" class="btn ghost" style="padding:0.9rem 1.75rem; font-size:12px;">
                         Create Account
                     </a>
                 <?php } else { ?>
@@ -240,17 +252,36 @@ $highlight_posters = array(
                         </p>
                     <?php } ?>
                 </div>
+                <?php 
+                    $item_sizes_list = $featured_sizes[$item['item_id']] ?? array();
+                    $has_item_sizes = count($item_sizes_list) > 0;
+                ?>
                 <div class="row">
                     <span class="price"><?= peso($item['price']) ?></span>
                     <?php if ($is_admin) { ?>
                         <span class="muted" style="font-size:11px; text-transform:uppercase;">Admin view</span>
                     <?php } elseif ($item['stock'] > 0) { ?>
-                        <form method="post" action="cart_update.php">
-                            <input type="hidden" name="action" value="add">
-                            <input type="hidden" name="item_id" value="<?= $item['item_id'] ?>">
-                            <input type="hidden" name="return_url" value="index.php#item-<?= $item['item_id'] ?>">
-                            <button class="btn sm" type="submit">Add to Cart</button>
-                        </form>
+                        <?php if ($has_item_sizes) { ?>
+                            <button class="btn sm" type="button" onclick='openVariantModal(<?= htmlspecialchars(json_encode([
+                                "id" => (int)$item["item_id"],
+                                "name" => $item["name"],
+                                "brand" => $item["brand"] !== "" ? $item["brand"] : $item["category"],
+                                "category" => $item["category"],
+                                "price" => peso($item["price"]),
+                                "image" => !empty($item["image"]) ? "images/uploads/" . basename($item["image"]) : "",
+                                "sizes" => $item_sizes_list,
+                                "return_url" => "index.php#item-" . $item["item_id"]
+                            ]), ENT_QUOTES, "UTF-8") ?>)'>
+                                Add to Cart
+                            </button>
+                        <?php } else { ?>
+                            <form method="post" action="actions/cart_update.php">
+                                <input type="hidden" name="action" value="add">
+                                <input type="hidden" name="item_id" value="<?= $item['item_id'] ?>">
+                                <input type="hidden" name="return_url" value="index.php#item-<?= $item['item_id'] ?>">
+                                <button class="btn sm" type="submit">Add to Cart</button>
+                            </form>
+                        <?php } ?>
                     <?php } else { ?>
                         <span class="muted" style="font-size:11px; text-transform:uppercase;">Out of Stock</span>
                     <?php } ?>
@@ -406,4 +437,7 @@ $highlight_posters = array(
 
 <script src="js/three.min.js"></script>
 <script src="js/spotibai-3d.js?v=<?= filemtime(__DIR__ . '/js/spotibai-3d.js') ?>"></script>
-<?php require 'includes/footer.php'; ?>
+<?php 
+require 'includes/variant_modal.php';
+require 'includes/footer.php'; 
+?>

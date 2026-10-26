@@ -73,7 +73,7 @@ $total = 0;
                     <?php } ?>
                 </span>
             </div>
-            <form method="post" action="cart_update.php" style="display:flex; align-items:center; gap:0.5rem;">
+            <form method="post" action="actions/cart_update.php" style="display:flex; align-items:center; gap:0.5rem;">
                 <input type="hidden" name="cart_key" value="<?= htmlspecialchars($cart_key) ?>">
                 <input type="hidden" name="item_id" value="<?= $id ?>">
                 <input type="hidden" name="size" value="<?= htmlspecialchars($selected_size) ?>">

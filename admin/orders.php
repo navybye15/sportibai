@@ -165,14 +165,32 @@ if (count($orders) > 0) {
     }
 }
 
-// ── Tab counts ────────────────────────────────────────────────────────────────
-$count_sql    = "SELECT status, COUNT(*) AS cnt FROM orders GROUP BY status";
+// ── Tab counts & Pipeline KPI metrics ─────────────────────────────────────────
+$count_sql    = "SELECT status, COUNT(*) AS cnt, SUM(total) AS sum_total FROM orders GROUP BY status";
 $count_result = mysqli_query($conn, $count_sql);
 $status_counts = array();
 $total_count   = 0;
-while ($cr = mysqli_fetch_assoc($count_result)) {
-    $status_counts[$cr['status']] = (int)$cr['cnt'];
-    $total_count += (int)$cr['cnt'];
+$kpi_pending   = 0;
+$kpi_transit   = 0;
+$kpi_completed = 0;
+$kpi_completed_val = 0;
+
+if ($count_result) {
+    while ($cr = mysqli_fetch_assoc($count_result)) {
+        $st = $cr['status'];
+        $c  = (int)$cr['cnt'];
+        $val = (float)$cr['sum_total'];
+        $status_counts[$st] = $c;
+        $total_count += $c;
+        if ($st === 'Pending') {
+            $kpi_pending += $c;
+        } elseif (in_array($st, array('Prepared', 'Ready to Ship', 'Shipped', 'Out for Delivery', 'Ready for Pick Up'))) {
+            $kpi_transit += $c;
+        } elseif ($st === 'Completed') {
+            $kpi_completed += $c;
+            $kpi_completed_val += $val;
+        }
+    }
 }
 
 $base = '../';
@@ -180,34 +198,67 @@ $page_title = 'Manage Orders | Sportibai';
 require '../includes/header.php';
 ?>
 
-<section class="reveal">
-    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+<section class="reveal in">
+    <!-- Header & Search Toolbar -->
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1.25rem; margin-bottom:1.5rem;">
         <div>
-            <div class="hero-eyebrow">[ PIPELINE MANAGEMENT ]</div>
-            <h1 style="font-size:var(--text-display-l)">Customer Orders</h1>
+            <div class="hero-eyebrow" style="color:var(--color-brand-red);">[ PIPELINE MANAGEMENT ]</div>
+            <h1 style="font-size:var(--text-display-l); line-height:1.15; margin:2px 0 0;">Customer Orders</h1>
+            <p class="muted" style="font-size:13px; margin:4px 0 0;">Track fulfillment, update order statuses, and inspect shipping information.</p>
         </div>
         <!-- Search -->
-        <form method="GET" action="orders.php" style="display:flex; gap:.75rem; align-items:center;">
+        <form method="GET" action="orders.php" style="display:flex; gap:.6rem; align-items:center; flex-wrap:wrap;">
             <?php if ($active_tab !== 'all') { ?>
                 <input type="hidden" name="tab" value="<?= htmlspecialchars($active_tab) ?>">
             <?php } ?>
-            <input type="search" name="q" class="search" style="min-width:16rem;"
-                placeholder="Search name, ref, phone…"
-                value="<?= htmlspecialchars($search) ?>">
-            <button class="btn sm" type="submit">Search</button>
+            <div style="position:relative; display:flex; align-items:center;">
+                <input type="search" name="q" class="search" style="min-width:17rem; padding:0.65rem 1rem 0.65rem 2.2rem; border-radius:10px;"
+                    placeholder="Search name, ref #, phone…"
+                    value="<?= htmlspecialchars($search) ?>">
+                <span style="position:absolute; left:12px; opacity:0.5; pointer-events:none; font-size:13px;">🔍</span>
+            </div>
+            <button class="btn sm" type="submit" style="padding:0.65rem 1.25rem; border-radius:10px;">Search</button>
             <?php if ($search !== '') { ?>
-                <a class="btn ghost sm" href="orders.php?tab=<?= urlencode($active_tab) ?>">Clear</a>
+                <a class="btn ghost sm" href="orders.php?tab=<?= urlencode($active_tab) ?>" style="border-radius:10px;">Clear</a>
             <?php } ?>
         </form>
     </div>
 
     <?php require '../includes/alert.php'; ?>
 
+    <!-- Pipeline KPI Metrics Ribbon -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:1rem; margin-bottom:1.75rem;">
+        <div class="card in" style="padding:1.25rem; border-radius:14px; background:rgba(22, 24, 29, 0.7); border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted);">Total Pipeline</div>
+            <div style="font-size:1.75rem; font-weight:800; color:#fff; margin-top:4px;"><?= $total_count ?></div>
+            <div class="muted" style="font-size:11px; margin-top:2px;">All customer transactions</div>
+        </div>
+        <div class="card in" style="padding:1.25rem; border-radius:14px; background:rgba(22, 24, 29, 0.7); border:1px solid <?= $kpi_pending > 0 ? 'rgba(224, 35, 28, 0.4)' : 'rgba(255,255,255,0.08)' ?>;">
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:<?= $kpi_pending > 0 ? '#ff6e64' : 'var(--color-muted)' ?>;">
+                <?= $kpi_pending > 0 ? '⚠️ Pending Action' : 'Pending Action' ?>
+            </div>
+            <div style="font-size:1.75rem; font-weight:800; color:<?= $kpi_pending > 0 ? '#ff6e64' : '#fff' ?>; margin-top:4px;">
+                <?= $kpi_pending ?>
+            </div>
+            <div class="muted" style="font-size:11px; margin-top:2px;">Orders waiting for confirmation</div>
+        </div>
+        <div class="card in" style="padding:1.25rem; border-radius:14px; background:rgba(22, 24, 29, 0.7); border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted);">In Fulfillment</div>
+            <div style="font-size:1.75rem; font-weight:800; color:var(--color-accent-on-dark); margin-top:4px;"><?= $kpi_transit ?></div>
+            <div class="muted" style="font-size:11px; margin-top:2px;">Prepared / Out for delivery / Shipped</div>
+        </div>
+        <div class="card in" style="padding:1.25rem; border-radius:14px; background:rgba(22, 24, 29, 0.7); border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted);">Delivered Volume</div>
+            <div style="font-size:1.75rem; font-weight:800; color:var(--color-brand-green); margin-top:4px;"><?= peso($kpi_completed_val) ?></div>
+            <div class="muted" style="font-size:11px; margin-top:2px;"><?= $kpi_completed ?> orders completed</div>
+        </div>
+    </div>
+
     <!-- Status Tabs -->
-    <div class="order-tabs admin-tabs" style="margin-bottom:1.5rem; flex-wrap:wrap;">
+    <div class="order-tabs admin-tabs" style="margin-bottom:1.75rem; flex-wrap:wrap; gap:6px;">
         <?php
         $tab_defs = array(
-            'all'              => 'All',
+            'all'              => 'All Orders',
             'Pending'          => 'Pending',
             'Prepared'         => 'Prepared',
             'Ready to Ship'    => 'Ready to Ship',
@@ -221,101 +272,187 @@ require '../includes/header.php';
         foreach ($tab_defs as $key => $label) {
             $cls   = ($active_tab === $key) ? 'order-tab active' : 'order-tab';
             $count = ($key === 'all') ? $total_count : ($status_counts[$key] ?? 0);
+            $is_alert_tab = ($key === 'Pending' && $count > 0);
         ?>
             <a href="orders.php?tab=<?= urlencode($key) ?><?= $search ? '&q=' . urlencode($search) : '' ?>"
-               class="<?= $cls ?>" style="font-size:11px; padding:6px 14px;">
+               class="<?= $cls ?>" style="font-size:12px; padding:7px 14px; border-radius:10px;">
                 <?= htmlspecialchars($label) ?>
                 <?php if ($count > 0) { ?>
-                    <span class="tab-badge"><?= $count ?></span>
+                    <span class="tab-badge" style="<?= $is_alert_tab ? 'background:var(--color-brand-red); color:#fff;' : '' ?>">
+                        <?= $count ?>
+                    </span>
                 <?php } ?>
             </a>
         <?php } ?>
     </div>
 
-    <!-- Orders -->
+    <!-- Orders Feed -->
     <?php if (count($orders) === 0) { ?>
-        <div class="card in" style="text-align:center; padding:4rem 2rem;">
-            <p class="muted" style="font-size:var(--text-body-lead)">
-                <?= $search ? 'No orders matching "' . htmlspecialchars($search) . '".' : 'No orders in this status.' ?>
+        <div class="card in" style="text-align:center; padding:4rem 2rem; border-radius:16px;">
+            <div style="font-size:2.5rem; margin-bottom:0.75rem;">📦</div>
+            <h3 style="font-size:1.15rem; font-weight:700; color:#fff; margin-bottom:4px;">No Orders Found</h3>
+            <p class="muted" style="font-size:13px; margin:0;">
+                <?= $search ? 'No orders matching "' . htmlspecialchars($search) . '".' : 'There are no customer orders in this category right now.' ?>
             </p>
         </div>
     <?php } ?>
 
-    <div class="order-list">
+    <div class="order-list" style="display:flex; flex-direction:column; gap:1.25rem;">
     <?php foreach ($orders as $o) {
         $ref      = $o['reference_number'] ?? ('SB-' . str_pad($o['order_id'], 7, '0', STR_PAD_LEFT));
         $name     = $o['snapshot_name'] ?? ($o['first_name'] . ' ' . $o['last_name']);
         $allowed  = allowed_next_statuses($o['status'], $o['order_type']);
+        $is_delivery = ($o['order_type'] === 'delivery');
+
+        // Parse physical address and special instructions note cleanly
+        $raw_addr  = $o['delivery_address'] ?? '';
+        $addr_text = $raw_addr;
+        $note_text = '';
+        if (strpos($raw_addr, "Note: ") !== false) {
+            $parts = explode("Note: ", $raw_addr, 2);
+            $addr_text = trim($parts[0], " \t\n\r\0\x0B,");
+            $note_text = trim($parts[1]);
+        }
     ?>
-        <div class="order-card reveal">
-            <div class="order-card-header">
-                <div class="order-ref-row">
-                    <span class="order-ref"><?= htmlspecialchars($ref) ?></span>
-                    <span class="status-badge" style="<?= status_badge_style($o['status']) ?>">
-                        <?= htmlspecialchars($o['status']) ?>
+        <div class="order-card reveal in" style="padding:1.5rem; border-radius:16px; background:rgba(22, 24, 29, 0.7); border:1px solid rgba(255, 255, 255, 0.08); box-shadow:0 8px 24px rgba(0,0,0,0.25);">
+            <!-- Card Header: Reference, Badges, Total & Date -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; padding-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.06);">
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <button type="button" onclick="copyRef('<?= htmlspecialchars($ref) ?>', this)" title="Click to copy order reference"
+                        style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:#fff; font-family:var(--font-mono); font-size:14px; font-weight:800; padding:4px 10px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; letter-spacing:0.5px;">
+                        <span>#<?= htmlspecialchars($ref) ?></span>
+                        <span style="font-size:11px; opacity:0.6;">📋</span>
+                    </button>
+                    <span class="status-badge" style="<?= status_badge_style($o['status']) ?> font-size:11px; padding:3px 10px; border-radius:8px;">
+                        ● <?= htmlspecialchars($o['status']) ?>
+                    </span>
+                    <span style="font-size:11px; font-weight:700; padding:3px 9px; border-radius:6px; background:rgba(255,255,255,0.06); color:var(--color-fg-secondary); text-transform:uppercase; letter-spacing:0.5px;">
+                        <?= $is_delivery ? '🚚 Delivery' : '🏬 Store Pick Up' ?>
                     </span>
                 </div>
-                <div class="order-meta">
-                    <strong style="color:var(--color-fg)"><?= htmlspecialchars($name) ?></strong>
-                    &nbsp;·&nbsp;<?= ucfirst($o['order_type']) ?>
-                    &nbsp;·&nbsp;<?= peso($o['total']) ?>
-                    &nbsp;·&nbsp;<?= date('M d, Y g:i A', strtotime($o['date_ordered'])) ?>
+                <div style="text-align:right;">
+                    <div style="font-size:1.25rem; font-weight:800; color:var(--color-brand-green); letter-spacing:-0.01em;">
+                        <?= peso($o['total']) ?>
+                    </div>
+                    <div class="muted" style="font-size:11px; margin-top:2px;">
+                        <?= date('M d, Y • g:i A', strtotime($o['date_ordered'])) ?>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Customer & Shipping Information Strip -->
+            <div style="display:flex; flex-direction:column; gap:8px; margin:1rem 0;">
+                <div style="display:flex; flex-wrap:wrap; gap:1.25rem; align-items:center; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.04); border-radius:10px; padding:10px 14px; font-size:12px;">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="opacity:0.6;">👤</span>
+                        <strong style="color:#fff;"><?= htmlspecialchars($name ?: 'Customer') ?></strong>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="opacity:0.6;">📞</span>
+                        <a href="tel:<?= htmlspecialchars($o['contact_number']) ?>" style="color:var(--color-fg-secondary); text-decoration:none;">
+                            <?= htmlspecialchars($o['contact_number'] ?: 'No phone provided') ?>
+                        </a>
+                    </div>
+                    <?php if ($is_delivery && !empty($addr_text)) { ?>
+                        <div style="display:flex; align-items:center; gap:6px; flex-grow:1;">
+                            <span style="opacity:0.6;">📍</span>
+                            <span style="color:var(--color-fg-secondary);"><?= htmlspecialchars($addr_text) ?></span>
+                        </div>
+                    <?php } ?>
+                </div>
+
+                <?php if (!empty($note_text)) { ?>
+                    <div style="display:flex; align-items:center; gap:8px; background:rgba(245, 158, 11, 0.08); border:1px solid rgba(245, 158, 11, 0.25); border-radius:8px; padding:6px 12px; font-size:12px; color:#fbbf24;">
+                        <span style="font-size:13px;">💬</span>
+                        <span><strong>Delivery Note:</strong> <?= htmlspecialchars($note_text) ?></span>
+                    </div>
+                <?php } ?>
             </div>
 
             <!-- Items with Visual Thumbnails -->
             <?php if (isset($order_items[$o['order_id']])) { ?>
-            <div class="order-items-preview" style="display:flex; flex-wrap:wrap; gap:10px; margin:0.75rem 0;">
-                <?php foreach ($order_items[$o['order_id']] as $oi) { 
-                    $has_img = !empty($oi['image']) && file_exists(__DIR__ . '/../images/uploads/' . $oi['image']);
-                    $img_src = $has_img ? '../images/uploads/' . htmlspecialchars($oi['image']) : '../images/placeholder.svg';
-                ?>
-                    <div style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); padding:4px 10px; border-radius:8px;">
-                        <img src="<?= $img_src ?>" alt="" style="width:34px; height:34px; object-fit:cover; border-radius:6px; flex-shrink:0; background:rgba(255,255,255,0.05);">
-                        <span style="font-size:13px; font-weight:500;">
-                            <strong style="color:var(--color-accent-on-dark);"><?= htmlspecialchars($oi['quantity']) ?>x</strong> <?= htmlspecialchars($oi['name']) ?>
-                            <?php if (!empty($oi['selected_size'])) { ?>
-                                <span class="badge" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); font-size:10px; padding:1px 6px; margin-left:4px;">
-                                    Size: <?= htmlspecialchars($oi['selected_size']) ?>
-                                </span>
-                            <?php } ?>
-                            <span class="muted" style="font-size:11px; margin-left:4px;">(<?= peso($oi['price']) ?>)</span>
-                        </span>
-                    </div>
-                <?php } ?>
+            <div style="margin:1rem 0;">
+                <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted); margin-bottom:8px;">
+                    Order Package (<?= count($order_items[$o['order_id']]) ?> items)
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:10px;">
+                    <?php foreach ($order_items[$o['order_id']] as $oi) { 
+                        $has_img = !empty($oi['image']) && file_exists(__DIR__ . '/../images/uploads/' . $oi['image']);
+                        $img_src = $has_img ? '../images/uploads/' . htmlspecialchars($oi['image']) : '../images/placeholder.svg';
+                    ?>
+                        <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); padding:10px 14px; border-radius:10px;">
+                            <img src="<?= $img_src ?>" alt="" style="width:46px; height:46px; object-fit:cover; border-radius:8px; flex-shrink:0; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);">
+                            <div style="flex-grow:1; min-width:0;">
+                                <div style="font-size:13px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                    <?= htmlspecialchars($oi['name']) ?>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:6px; margin-top:3px; font-size:11px;">
+                                    <span style="color:var(--color-accent-on-dark); font-weight:700;"><?= (int)$oi['quantity'] ?>x</span>
+                                    <?php if (!empty($oi['selected_size'])) { ?>
+                                        <span style="background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700; color:#fff;">
+                                            Size: <?= htmlspecialchars($oi['selected_size']) ?>
+                                        </span>
+                                    <?php } ?>
+                                    <span class="muted"><?= peso($oi['price']) ?> each</span>
+                                </div>
+                            </div>
+                        </div>
+                    <?php } ?>
+                </div>
             </div>
             <?php } ?>
 
-            <!-- Address / Contact -->
-            <div class="muted" style="font-size:var(--text-body-sm); margin-top:.25rem;">
-                <?php if ($o['order_type'] === 'delivery' && $o['delivery_address']) { ?>
-                    📍 <?= nl2br(htmlspecialchars($o['delivery_address'])) ?> &nbsp;·&nbsp;
-                <?php } ?>
-                📞 <?= htmlspecialchars($o['contact_number']) ?>
-            </div>
-
-            <!-- Status Update Actions -->
-            <div class="order-card-actions" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
-                <a href="../download_receipt.php?order_id=<?= $o['order_id'] ?>" target="_blank" class="btn ghost sm" style="font-size:11px;">📄 PDF Receipt</a>
-                <?php if (count($allowed) > 0) { ?>
-                <form method="POST" action="orders.php" style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="order_id" value="<?= $o['order_id'] ?>">
-                    <select name="new_status" class="search" style="min-width:10rem; padding:0.5rem 0.8rem; flex:0 1 auto;">
-                        <?php foreach ($allowed as $status) { ?>
-                            <option value="<?= htmlspecialchars($status) ?>"
-                                <?= $status === 'Cancelled' ? 'style="color:#ff9f96;"' : '' ?>>
-                                <?= htmlspecialchars($status) ?>
-                            </option>
-                        <?php } ?>
-                    </select>
-                    <button class="btn sm" type="submit" name="update_status">Update Status</button>
-                </form>
-                <?php } ?>
+            <!-- Status Update & Receipt Actions Footer -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.06);">
+                <div>
+                    <a href="../actions/download_receipt.php?order_id=<?= $o['order_id'] ?>" target="_blank" class="btn ghost sm" style="font-size:11px; padding:6px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;">
+                        📄 View PDF Receipt
+                    </a>
+                </div>
+                <div>
+                    <?php if (count($allowed) > 0) { ?>
+                        <form method="POST" action="orders.php" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:0;">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="order_id" value="<?= $o['order_id'] ?>">
+                            <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--color-fg-secondary); letter-spacing:0.5px;">Transition to:</span>
+                            <select name="new_status" class="search" style="min-width:11rem; padding:0.45rem 0.8rem; font-size:12px; font-weight:600; border-radius:8px;">
+                                <?php foreach ($allowed as $status) { ?>
+                                    <option value="<?= htmlspecialchars($status) ?>"
+                                        <?= $status === 'Cancelled' ? 'style="color:#ff9f96;"' : '' ?>>
+                                        <?= htmlspecialchars($status) ?>
+                                    </option>
+                                <?php } ?>
+                            </select>
+                            <button class="btn sm" type="submit" name="update_status" style="font-size:11px; padding:0.48rem 1.1rem; border-radius:8px; font-weight:700;">
+                                Apply Status &rarr;
+                            </button>
+                        </form>
+                    <?php } elseif ($o['status'] === 'Completed') { ?>
+                        <span style="font-size:12px; color:var(--color-brand-green); font-weight:700; display:inline-flex; align-items:center; gap:6px; background:rgba(81,175,67,0.1); border:1px solid rgba(81,175,67,0.25); padding:4px 12px; border-radius:8px;">
+                            ✓ Order Fulfilled &amp; Completed
+                        </span>
+                    <?php } elseif ($o['status'] === 'Cancelled') { ?>
+                        <span style="font-size:12px; color:#ff6b6b; font-weight:600; display:inline-flex; align-items:center; gap:6px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); padding:4px 12px; border-radius:8px;">
+                            ✕ Order Cancelled &amp; Inventory Restocked
+                        </span>
+                    <?php } ?>
+                </div>
             </div>
         </div>
     <?php } ?>
     </div>
+
+<script>
+function copyRef(ref, btn) {
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(ref).then(function() {
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<span>Copied!</span> <span style="font-size:11px; color:var(--color-brand-green);">✓</span>';
+            setTimeout(function() { btn.innerHTML = orig; }, 1500);
+        });
+    }
+}
+</script>
 
     <!-- Admin Orders Pagination -->
     <?php if ($total_pages > 1) { ?>

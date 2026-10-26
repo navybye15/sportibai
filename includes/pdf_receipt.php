@@ -4,7 +4,7 @@
 // Uses FPDF to produce an official transaction receipt PDF
 // =====================================================
 
-require_once __DIR__ . '/../fpdf/fpdf.php';
+require_once __DIR__ . '/../lib/fpdf/fpdf.php';
 
 function generate_order_receipt_pdf($order_id, $conn) {
     if (!$conn) {

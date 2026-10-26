@@ -6,7 +6,7 @@ require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/functions.php';
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
+    header('Location: auth/login.php');
     exit;
 }
 
@@ -232,7 +232,7 @@ $banner = $status_banners[$order['status']] ?? array('title' => $order['status']
                     </a>
                 <?php } ?>
                 <?php if ($can_receive) { ?>
-                    <form method="POST" action="receive_order.php" style="display:inline;">
+                    <form method="POST" action="actions/receive_order.php" style="display:inline;">
                         <?= csrf_field() ?>
                         <input type="hidden" name="order_id" value="<?= $order['order_id'] ?>">
                         <button class="btn sm" type="submit"
@@ -247,7 +247,7 @@ $banner = $status_banners[$order['status']] ?? array('title' => $order['status']
                     </button>
                 <?php } ?>
                 <?php if ($can_cancel) { ?>
-                    <form method="POST" action="cancel_order.php" style="display:inline;">
+                    <form method="POST" action="actions/cancel_order.php" style="display:inline;">
                         <?= csrf_field() ?>
                         <input type="hidden" name="order_id" value="<?= $order['order_id'] ?>">
                         <button class="btn ghost sm" type="submit"

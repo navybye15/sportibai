@@ -10,7 +10,7 @@ require_once __DIR__ . '/includes/functions.php';
 // Only logged-in users may access this page
 if (!isset($_SESSION['user_id'])) {
     $_SESSION['message'] = 'Please log in to access your profile.';
-    header('Location: login.php');
+    header('Location: auth/login.php');
     exit;
 }
 

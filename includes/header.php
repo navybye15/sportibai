@@ -23,18 +23,39 @@ if (isset($_SESSION['cart'])) $cart_count = array_sum($_SESSION['cart']);
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="<?= $base ?>favicon.svg">
-<link rel="stylesheet" href="<?= $base ?>css/style.css">
+<link rel="stylesheet" href="<?= $base ?>css/style.css?v=<?= @filemtime(__DIR__ . '/../css/style.css') ?: time() ?>">
 </head>
 <body>
 <div class="nav-container">
     <header class="nav">
-    <?php if ($is_admin) { ?>
-        <a class="brand" href="<?= $base ?>admin/index.php">SPORTI<span class="ops">BAI</span> <span style="font-size:10px; font-weight:700; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; letter-spacing:1px; vertical-align:middle; margin-left:4px;">ADMIN</span></a>
-        <nav class="nav-links">
-            <a href="<?= $base ?>admin/index.php">Dashboard</a>
-            <a href="<?= $base ?>index.php" target="_blank" title="View Customer Storefront">View Shop ↗</a>
-            <a href="<?= $base ?>admin/account.php">Account</a>
-            <a href="<?= $base ?>logout.php">Logout</a>
+    <?php if ($is_admin) { 
+        $admin_cur_page = basename($_SERVER['PHP_SELF']);
+        $admin_pending_orders = 0;
+        if (isset($conn) && $conn) {
+            $p_res = @mysqli_query($conn, "SELECT COUNT(*) as c FROM orders WHERE status = 'Pending'");
+            if ($p_res) $admin_pending_orders = (int)(mysqli_fetch_assoc($p_res)['c'] ?? 0);
+        }
+    ?>
+        <a class="brand" href="<?= $base ?>admin/index.php">
+            SPORTI<span class="ops">BAI</span> 
+            <span class="admin-badge-chip">ADMIN</span>
+        </a>
+        <nav class="nav-links admin-nav-links">
+            <a href="<?= $base ?>admin/index.php" class="<?= $admin_cur_page === 'index.php' ? 'active' : '' ?>">Dashboard</a>
+            <a href="<?= $base ?>admin/orders.php" class="<?= $admin_cur_page === 'orders.php' ? 'active' : '' ?>">
+                Orders
+                <?php if ($admin_pending_orders > 0) { ?>
+                    <span class="admin-pill-badge"><?= $admin_pending_orders ?></span>
+                <?php } ?>
+            </a>
+            <a href="<?= $base ?>admin/items.php" class="<?= in_array($admin_cur_page, array('items.php','item_edit.php')) ? 'active' : '' ?>">Inventory</a>
+            <a href="<?= $base ?>admin/categories.php" class="<?= $admin_cur_page === 'categories.php' ? 'active' : '' ?>">Categories</a>
+            <a href="<?= $base ?>admin/sales_report.php" class="<?= $admin_cur_page === 'sales_report.php' ? 'active' : '' ?>">Financials</a>
+            <a href="<?= $base ?>admin/expenses.php" class="<?= in_array($admin_cur_page, array('expenses.php','expense_edit.php')) ? 'active' : '' ?>">Expenses</a>
+            <a href="<?= $base ?>admin/users.php" class="<?= $admin_cur_page === 'users.php' ? 'active' : '' ?>">Users</a>
+            <a href="<?= $base ?>index.php" target="_blank" title="View Customer Storefront" class="nav-ext-link">Shop ↗</a>
+            <a href="<?= $base ?>admin/account.php" class="<?= $admin_cur_page === 'account.php' ? 'active' : '' ?>">Account</a>
+            <a href="<?= $base ?>auth/logout.php" class="nav-logout-link">Logout</a>
         </nav>
     <?php } else { ?>
         <a class="brand" href="<?= $base ?>index.php">SPORTI<span class="ops">BAI</span></a>
@@ -45,10 +66,10 @@ if (isset($_SESSION['cart'])) $cart_count = array_sum($_SESSION['cart']);
             <a href="<?= $base ?>view_cart.php">Cart <span class="badge" id="nav-cart-badge"><?= $cart_count ?></span></a>
             <?php if (isset($_SESSION['user_id'])) { ?>
                 <a href="<?= $base ?>profile.php">Profile</a>
-                <a href="<?= $base ?>logout.php">Logout</a>
+                <a href="<?= $base ?>auth/logout.php">Logout</a>
             <?php } else { ?>
-                <a href="<?= $base ?>login.php">Log in</a>
-                <a href="<?= $base ?>register.php">Register</a>
+                <a href="<?= $base ?>auth/login.php">Log in</a>
+                <a href="<?= $base ?>auth/register.php">Register</a>
             <?php } ?>
         </nav>
     <?php } ?>

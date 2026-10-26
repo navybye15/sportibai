@@ -3,3 +3,14 @@ ErrorDocument 404 /sportibai/404.php
 
 # Prevent directory indexing
 Options -Indexes
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /sportibai/
+
+# Seamless redirection for moved auth files
+RewriteRule ^(login|register|logout|forgot_password|reset_password)\.php$ auth/$1.php [R=302,L,QSA]
+
+# Seamless redirection for moved action files
+RewriteRule ^(cart_update|cancel_order|receive_order|download_receipt)\.php$ actions/$1.php [R=302,L,QSA]
+</IfModule>

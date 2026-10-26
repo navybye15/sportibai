@@ -215,7 +215,7 @@ require '../includes/header.php';
         </div>
 
         <?php if ($item['stock'] > 0) { ?>
-            <form method="post" action="../cart_update.php" id="add-to-cart-form" style="margin-top:1rem;">
+            <form method="post" action="../actions/cart_update.php" id="add-to-cart-form" style="margin-top:1rem;">
                 <input type="hidden" name="action" value="add">
                 <input type="hidden" name="item_id" value="<?= $item['item_id'] ?>">
                 <input type="hidden" name="size" id="selected-size-input" value="">
@@ -488,7 +488,7 @@ require '../includes/header.php';
         </script>
     <?php } elseif (!isset($_SESSION['user_id'])) { ?>
         <div style="padding:1rem 1.25rem; background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.12); border-radius:10px; margin-bottom:2rem; font-size:13px;" class="muted">
-            ℹ️ <a href="../login.php?redirect=item/detail.php?id=<?= $id ?>" style="color:var(--color-accent-on-dark); font-weight:600;">Sign in</a> to leave a review if you have purchased this item.
+            ℹ️ <a href="../auth/login.php?redirect=item/detail.php?id=<?= $id ?>" style="color:var(--color-accent-on-dark); font-weight:600;">Sign in</a> to leave a review if you have purchased this item.
         </div>
     <?php } else { ?>
         <div style="padding:1rem 1.25rem; background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.12); border-radius:10px; margin-bottom:2rem; font-size:13px;" class="muted">

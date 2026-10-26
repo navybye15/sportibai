@@ -152,36 +152,41 @@ require '../includes/header.php';
             <form method="POST" action="account.php" enctype="multipart/form-data" novalidate>
                 <?= csrf_field() ?>
                 <div>
-                    <div class="hero-eyebrow">[ CREDENTIAL ]</div>
-                    <h2 style="font-size:1.2rem; margin-top:2px;">Update Email & Avatar</h2>
+                    <div class="hero-eyebrow" style="color:var(--color-accent-on-dark);">[ CREDENTIAL ]</div>
+                    <h2 style="font-size:1.25rem; font-weight:700; color:#fff; margin-top:2px;">Update Email & Avatar</h2>
                 </div>
 
                 <?php if (isset($errors_account['general'])) { ?>
-                    <div style="color:#ff9f96; font-size:13px; margin:0.5rem 0;">⚠️ <?= htmlspecialchars($errors_account['general']) ?></div>
+                    <div style="color:#ff9f96; font-size:13px; margin:0.75rem 0; padding:8px 12px; background:rgba(255,107,107,0.12); border-radius:8px; border:1px solid rgba(255,107,107,0.3);">⚠️ <?= htmlspecialchars($errors_account['general']) ?></div>
                 <?php } ?>
 
-                <div style="margin-top:1rem;">
-                    <label class="form-label">Email Address</label>
-                    <input type="text" name="email" value="<?= htmlspecialchars($_POST['email'] ?? $admin_user['email']) ?>" style="margin-top:0.5rem; <?= isset($errors_account['email']) ? 'border-color:#ff6b6b;' : '' ?>">
+                <div style="margin-top:1.25rem;">
+                    <label class="modern-label">Email Address</label>
+                    <div class="input-icon-wrap <?= isset($errors_account['email']) ? 'has-error' : '' ?>">
+                        <span class="input-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                        </span>
+                        <input type="email" name="email" class="modern-input" value="<?= htmlspecialchars($_POST['email'] ?? $admin_user['email']) ?>" placeholder="admin@sportibai.com" autocomplete="email">
+                    </div>
                     <?php if (isset($errors_account['email'])) { ?>
-                        <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors_account['email']) ?></div>
+                        <div class="field-error">⚠️ <?= htmlspecialchars($errors_account['email']) ?></div>
                     <?php } ?>
                 </div>
 
                 <div style="margin-top:1.25rem;">
-                    <label class="form-label">Update Profile Avatar</label>
-                    <div style="margin-top:0.5rem;">
+                    <label class="modern-label">Update Profile Avatar</label>
+                    <div style="margin-top:0.5rem; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                         <input type="file" name="profile_photo" id="admin_photo_input" accept=".jpg,.jpeg,.png,.webp" style="display:none;" onchange="document.getElementById('admin_photo_name').innerText = this.files[0] ? this.files[0].name : '';">
                         <button type="button" class="btn ghost sm" onclick="document.getElementById('admin_photo_input').click();">📷 Choose Avatar Image</button>
-                        <span id="admin_photo_name" class="muted" style="font-size:12px; margin-left:10px;"></span>
+                        <span id="admin_photo_name" class="muted" style="font-size:12px;"></span>
                     </div>
-                    <small class="muted" style="font-size:11px; display:block; margin-top:4px;">JPG, PNG, or WEBP (Max 2MB)</small>
+                    <small class="muted" style="font-size:11px; display:block; margin-top:6px;">Supported: JPG, PNG, or WEBP (Max 2MB)</small>
                     <?php if (isset($errors_account['profile_photo'])) { ?>
-                        <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors_account['profile_photo']) ?></div>
+                        <div class="field-error">⚠️ <?= htmlspecialchars($errors_account['profile_photo']) ?></div>
                     <?php } ?>
                 </div>
 
-                <div style="margin-top:1.5rem;">
+                <div style="margin-top:1.75rem;">
                     <button class="btn" type="submit" name="update_account">Save Account Changes</button>
                 </div>
             </form>
@@ -192,40 +197,150 @@ require '../includes/header.php';
             <form method="POST" action="account.php" novalidate>
                 <?= csrf_field() ?>
                 <div>
-                    <div class="hero-eyebrow">[ ENCRYPTION ]</div>
-                    <h2 style="font-size:1.2rem; margin-top:2px;">Change Password</h2>
-                    <p class="muted" style="font-size:var(--text-body-sm); margin-top:4px;">Use at least 6 characters with a combination of letters and numbers.</p>
+                    <div class="hero-eyebrow" style="color:var(--color-brand-red);">[ ENCRYPTION & SECURITY ]</div>
+                    <h2 style="font-size:1.25rem; font-weight:700; color:#fff; margin-top:2px;">Change Password</h2>
+                    <p class="muted" style="font-size:12px; margin-top:4px;">Use at least 6 characters with a combination of letters and numbers.</p>
                 </div>
 
-                <div style="margin-top:1rem;">
-                    <label class="form-label">Current Password</label>
-                    <input type="password" name="current_password" placeholder="Enter current password" autocomplete="current-password" style="margin-top:0.5rem; <?= isset($errors_password['current_password']) ? 'border-color:#ff6b6b;' : '' ?>">
+                <div style="margin-top:1.25rem;">
+                    <label class="modern-label">Current Password</label>
+                    <div class="input-icon-wrap <?= isset($errors_password['current_password']) ? 'has-error' : '' ?>">
+                        <span class="input-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        </span>
+                        <input type="password" id="current_password" name="current_password" class="modern-input" placeholder="Enter current password" autocomplete="current-password">
+                        <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('current_password', this)" title="Show/Hide Password">👁️</button>
+                    </div>
                     <?php if (isset($errors_password['current_password'])) { ?>
-                        <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors_password['current_password']) ?></div>
+                        <div class="field-error">⚠️ <?= htmlspecialchars($errors_password['current_password']) ?></div>
                     <?php } ?>
                 </div>
 
-                <div style="margin-top:1rem;">
-                    <label class="form-label">New Password</label>
-                    <input type="password" name="new_password" placeholder="Enter new password (min. 6 chars)" autocomplete="new-password" style="margin-top:0.5rem; <?= isset($errors_password['new_password']) ? 'border-color:#ff6b6b;' : '' ?>">
+                <div style="margin-top:1.25rem;">
+                    <label class="modern-label">New Password</label>
+                    <div class="input-icon-wrap <?= isset($errors_password['new_password']) ? 'has-error' : '' ?>">
+                        <span class="input-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        </span>
+                        <input type="password" id="new_password" name="new_password" class="modern-input" placeholder="Enter new password (min. 6 chars)" autocomplete="new-password">
+                        <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('new_password', this)" title="Show/Hide Password">👁️</button>
+                    </div>
                     <?php if (isset($errors_password['new_password'])) { ?>
-                        <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors_password['new_password']) ?></div>
+                        <div class="field-error">⚠️ <?= htmlspecialchars($errors_password['new_password']) ?></div>
                     <?php } ?>
                 </div>
 
-                <div style="margin-top:1rem;">
-                    <label class="form-label">Confirm New Password</label>
-                    <input type="password" name="confirm_password" placeholder="Re-enter new password" autocomplete="new-password" style="margin-top:0.5rem; <?= isset($errors_password['confirm_password']) ? 'border-color:#ff6b6b;' : '' ?>">
+                <div style="margin-top:1.25rem;">
+                    <label class="modern-label">Confirm New Password</label>
+                    <div class="input-icon-wrap <?= isset($errors_password['confirm_password']) ? 'has-error' : '' ?>">
+                        <span class="input-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        </span>
+                        <input type="password" id="confirm_password" name="confirm_password" class="modern-input" placeholder="Re-enter new password" autocomplete="new-password">
+                        <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('confirm_password', this)" title="Show/Hide Password">👁️</button>
+                    </div>
                     <?php if (isset($errors_password['confirm_password'])) { ?>
-                        <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors_password['confirm_password']) ?></div>
+                        <div class="field-error">⚠️ <?= htmlspecialchars($errors_password['confirm_password']) ?></div>
                     <?php } ?>
                 </div>
 
-                <div style="margin-top:1.5rem;">
+                <div style="margin-top:1.75rem;">
                     <button class="btn" type="submit" name="change_password">Update Password</button>
                 </div>
             </form>
         </div>
     </div>
 </section>
+
+<style>
+.modern-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #a1a4ad;
+    margin-bottom: 0.5rem;
+}
+.input-icon-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(16, 18, 24, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+.input-icon-wrap:focus-within {
+    border-color: #0a84ff;
+    background: rgba(20, 24, 34, 0.95);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.25), inset 0 1px 2px rgba(0,0,0,0.2);
+}
+.input-icon-wrap.has-error {
+    border-color: #ff6b6b;
+    box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.2);
+}
+.input-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 14px;
+    color: #8e929b;
+    flex-shrink: 0;
+}
+.input-icon-wrap:focus-within .input-icon {
+    color: #0a84ff;
+}
+.modern-input {
+    width: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    color: #fff !important;
+    font-size: 14px !important;
+    padding: 0.85rem 1rem !important;
+    font-family: inherit !important;
+    box-sizing: border-box !important;
+}
+.modern-input::placeholder {
+    color: rgba(255, 255, 255, 0.28) !important;
+}
+.pwd-toggle-btn {
+    background: transparent;
+    border: none;
+    color: #8e929b;
+    padding: 0 14px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    transition: color 0.15s;
+    user-select: none;
+}
+.pwd-toggle-btn:hover {
+    color: #fff;
+}
+.field-error {
+    color: #ff9f96;
+    font-size: 12px;
+    margin-top: 6px;
+    font-weight: 500;
+}
+</style>
+
+<script>
+function togglePasswordVisibility(id, btn) {
+    const input = document.getElementById(id);
+    if (!input) return;
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.style.opacity = '1';
+    } else {
+        input.type = 'password';
+        btn.style.opacity = '0.7';
+    }
+}
+</script>
+
 <?php require '../includes/footer.php'; ?>

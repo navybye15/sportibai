@@ -201,13 +201,40 @@ while ($row = mysqli_fetch_assoc($result)) {
     $categories[] = $row;
 }
 
+$search_q     = trim($_GET['q'] ?? '');
+$filter_cat   = (int)($_GET['cat'] ?? 0);
+$filter_stock = $_GET['stock'] ?? 'all';
+
 $items = array();
 $active_val = $is_archived_view ? 0 : 1;
+$where_clauses = array("i.is_active = ?");
+$where_params  = array($active_val);
+
+if ($search_q !== '') {
+    $where_clauses[] = "(i.name LIKE ? OR i.brand LIKE ? OR i.item_id = ?)";
+    $like_q = "%$search_q%";
+    $where_params[] = $like_q;
+    $where_params[] = $like_q;
+    $where_params[] = is_numeric($search_q) ? (int)$search_q : 0;
+}
+if ($filter_cat > 0) {
+    $where_clauses[] = "i.category_id = ?";
+    $where_params[] = $filter_cat;
+}
+if ($filter_stock === 'low') {
+    $where_clauses[] = "i.stock < 5 AND i.stock > 0";
+} elseif ($filter_stock === 'out') {
+    $where_clauses[] = "i.stock = 0";
+} elseif ($filter_stock === 'in') {
+    $where_clauses[] = "i.stock >= 5";
+}
+
+$where_sql = implode(' AND ', $where_clauses);
 $sql = "SELECT i.item_id, i.name, i.brand, i.price, i.cost_price, i.stock, i.image, c.name AS category
         FROM items i JOIN categories c ON i.category_id = c.category_id
-        WHERE i.is_active = ?
+        WHERE $where_sql
         ORDER BY i.item_id DESC";
-$result = mysqli_execute_query($conn, $sql, array($active_val));
+$result = mysqli_execute_query($conn, $sql, $where_params);
 while ($row = mysqli_fetch_assoc($result)) {
     $items[] = $row;
 }
@@ -231,26 +258,61 @@ $base = '../';
 $page_title = 'Manage Items | Sportibai';
 require '../includes/header.php';
 ?>
-<section class="reveal">
+<section class="reveal in">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
         <div>
-            <div class="hero-eyebrow">[ CATALOG CONTROL ]</div>
-            <h1 style="font-size: var(--text-display-l)">Manage Items</h1>
+            <div class="hero-eyebrow" style="color:var(--color-brand-red);">[ CATALOG MANAGEMENT ]</div>
+            <h1 style="font-size: var(--text-display-l); line-height:1.15; margin:2px 0 0;">Manage Items</h1>
         </div>
-        <div class="order-tabs" style="margin-bottom:0; border-bottom:none;">
-            <a href="items.php?view=active" class="order-tab <?= !$is_archived_view ? 'active' : '' ?>">
-                Active Catalog <span class="tab-badge"><?= $active_count ?></span>
-            </a>
-            <a href="items.php?view=archived" class="order-tab <?= $is_archived_view ? 'active' : '' ?>">
-                Archived / Hidden <span class="tab-badge"><?= $archived_count ?></span>
-            </a>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <?php if (!$is_archived_view) { ?>
+                <button type="button" class="btn sm" onclick="toggleAddForm()" style="box-shadow:0 0 16px rgba(10,132,255,0.35);">
+                    + Add New Item
+                </button>
+            <?php } ?>
+            <div class="order-tabs" style="margin-bottom:0; border-bottom:none;">
+                <a href="items.php?view=active" class="order-tab <?= !$is_archived_view ? 'active' : '' ?>">
+                    Active <span class="tab-badge"><?= $active_count ?></span>
+                </a>
+                <a href="items.php?view=archived" class="order-tab <?= $is_archived_view ? 'active' : '' ?>">
+                    Archived <span class="tab-badge"><?= $archived_count ?></span>
+                </a>
+            </div>
         </div>
     </div>
     <?php require '../includes/alert.php'; ?>
 
+    <!-- Catalog Filter & Search Toolbar -->
+    <form method="GET" action="items.php" class="filter-search-bar" style="margin-bottom:1.5rem;">
+        <input type="hidden" name="view" value="<?= $is_archived_view ? 'archived' : 'active' ?>">
+        
+        <input type="search" name="q" class="search" placeholder="Search by item name, brand, or ID…" value="<?= htmlspecialchars($search_q) ?>" style="min-width:14rem;">
+        
+        <select name="cat" class="search" style="max-width:14rem;" onchange="this.form.submit()">
+            <option value="0">All Categories</option>
+            <?php foreach ($categories as $c) { ?>
+                <option value="<?= $c['category_id'] ?>" <?= $filter_cat == $c['category_id'] ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($c['name']) ?>
+                </option>
+            <?php } ?>
+        </select>
+
+        <select name="stock" class="search" style="max-width:12rem;" onchange="this.form.submit()">
+            <option value="all" <?= $filter_stock === 'all' ? 'selected' : '' ?>>All Stock Levels</option>
+            <option value="in" <?= $filter_stock === 'in' ? 'selected' : '' ?>>In Stock (5+)</option>
+            <option value="low" <?= $filter_stock === 'low' ? 'selected' : '' ?>>Low Stock (1-4)</option>
+            <option value="out" <?= $filter_stock === 'out' ? 'selected' : '' ?>>Out of Stock (0)</option>
+        </select>
+
+        <button class="btn sm" type="submit">Filter</button>
+        <?php if ($search_q !== '' || $filter_cat > 0 || $filter_stock !== 'all') { ?>
+            <a href="items.php?view=<?= $is_archived_view ? 'archived' : 'active' ?>" class="btn ghost sm">Reset</a>
+        <?php } ?>
+    </form>
+
     <?php if (!$is_archived_view) { ?>
     <!-- Add Item Form (MP1 Multi-photo + MP5 Pure PHP validation) -->
-    <form id="add" class="form" method="POST" action="items.php" enctype="multipart/form-data" novalidate style="margin: 1.5rem 0 2.5rem; max-width: 100%;">
+    <form id="add" class="form" method="POST" action="items.php" enctype="multipart/form-data" novalidate style="margin: 0 0 2.5rem; max-width: 100%; display: <?= isset($_GET['add']) ? 'block' : 'none' ?>;">
         <?= csrf_field() ?>
         <div>
             <div class="hero-eyebrow">[ PRODUCT INTAKE ]</div>
@@ -391,7 +453,24 @@ require '../includes/header.php';
             if (stdInput) stdInput.value = total;
         }
 
-        document.addEventListener('DOMContentLoaded', onCategoryChange);
+        function toggleAddForm() {
+            var form = document.getElementById('add');
+            if (!form) return;
+            if (form.style.display === 'none') {
+                form.style.display = 'block';
+                form.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                form.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            onCategoryChange();
+            if (window.location.hash === '#add') {
+                var form = document.getElementById('add');
+                if (form) form.style.display = 'block';
+            }
+        });
         </script>
         </div>
         <div>

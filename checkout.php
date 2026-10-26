@@ -5,7 +5,7 @@ require 'includes/db.php';
 require 'includes/functions.php';
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php?redirect=checkout.php');
+    header('Location: auth/login.php?redirect=checkout.php');
     exit;
 }
 if ($conn == null) {

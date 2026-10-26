@@ -427,7 +427,8 @@ function check_user_session($conn) {
         session_destroy();
         session_start();
         $_SESSION['message'] = 'Session timed out due to inactivity. Please log in again.';
-        header('Location: ' . (file_exists('login.php') ? 'login.php' : '../login.php'));
+        $login_url = file_exists('auth/login.php') ? 'auth/login.php' : (file_exists('../auth/login.php') ? '../auth/login.php' : 'auth/login.php');
+        header('Location: ' . $login_url);
         exit;
     }
     $_SESSION['last_activity'] = time();
@@ -442,7 +443,8 @@ function check_user_session($conn) {
             session_destroy();
             session_start();
             $_SESSION['message'] = 'Your account has been deactivated. Please contact support.';
-            header('Location: ' . (file_exists('login.php') ? 'login.php' : '../login.php'));
+            $login_url = file_exists('auth/login.php') ? 'auth/login.php' : (file_exists('../auth/login.php') ? '../auth/login.php' : 'auth/login.php');
+            header('Location: ' . $login_url);
             exit;
         }
     }

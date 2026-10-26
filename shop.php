@@ -99,6 +99,19 @@ while ($row = mysqli_fetch_assoc($items_res)) {
     $shown[] = $row;
 }
 
+// Fetch per-size variants for displayed items to support quick-add modal
+$shop_sizes = array();
+if (!empty($shown)) {
+    $sh_ids = array_column($shown, 'item_id');
+    $in_clause = implode(',', array_map('intval', $sh_ids));
+    $sz_res = mysqli_query($conn, "SELECT size_id, item_id, size_label, stock FROM item_sizes WHERE item_id IN ($in_clause) ORDER BY size_id ASC");
+    if ($sz_res) {
+        while ($srow = mysqli_fetch_assoc($sz_res)) {
+            $shop_sizes[$srow['item_id']][] = $srow;
+        }
+    }
+}
+
 // Build URL query state for links
 $keep = array();
 if ($q !== '')        $keep['q']     = $q;
@@ -202,17 +215,36 @@ $all_link = count(array_filter($keep, fn($k) => $k !== 'cat', ARRAY_FILTER_USE_K
                                 </p>
                             <?php } ?>
                         </div>
+                        <?php 
+                            $item_sizes_list = $shop_sizes[$item['item_id']] ?? array();
+                            $has_item_sizes = count($item_sizes_list) > 0;
+                        ?>
                         <div class="row">
                             <span class="price"><?= peso($item['price']) ?></span>
                             <?php if ($is_admin) { ?>
                                 <span class="muted" style="font-size:11px; text-transform:uppercase;">Admin view</span>
                             <?php } elseif ($item['stock'] > 0) { ?>
-                                <form method="post" action="cart_update.php">
-                                    <input type="hidden" name="action" value="add">
-                                    <input type="hidden" name="item_id" value="<?= $item['item_id'] ?>">
-                                    <input type="hidden" name="return_url" value="shop.php<?= count($_GET) > 0 ? ('?' . http_build_query($_GET)) : '' ?>#item-<?= $item['item_id'] ?>">
-                                    <button class="btn sm" type="submit">Add to Cart</button>
-                                </form>
+                                <?php if ($has_item_sizes) { ?>
+                                    <button class="btn sm" type="button" onclick='openVariantModal(<?= htmlspecialchars(json_encode([
+                                        "id" => (int)$item["item_id"],
+                                        "name" => $item["name"],
+                                        "brand" => $item["brand"] !== "" ? $item["brand"] : $item["category"],
+                                        "category" => $item["category"],
+                                        "price" => peso($item["price"]),
+                                        "image" => !empty($item["image"]) ? "images/uploads/" . basename($item["image"]) : "",
+                                        "sizes" => $item_sizes_list,
+                                        "return_url" => "shop.php" . (count($_GET) > 0 ? ("?" . http_build_query($_GET)) : "") . "#item-" . $item["item_id"]
+                                    ]), ENT_QUOTES, "UTF-8") ?>)'>
+                                        Add to Cart
+                                    </button>
+                                <?php } else { ?>
+                                    <form method="post" action="actions/cart_update.php">
+                                        <input type="hidden" name="action" value="add">
+                                        <input type="hidden" name="item_id" value="<?= $item['item_id'] ?>">
+                                        <input type="hidden" name="return_url" value="shop.php<?= count($_GET) > 0 ? ('?' . http_build_query($_GET)) : '' ?>#item-<?= $item['item_id'] ?>">
+                                        <button class="btn sm" type="submit">Add to Cart</button>
+                                    </form>
+                                <?php } ?>
                             <?php } else { ?>
                                 <span class="muted" style="font-size:11px; text-transform:uppercase;">Out of Stock</span>
                             <?php } ?>
@@ -252,4 +284,7 @@ $all_link = count(array_filter($keep, fn($k) => $k !== 'cat', ARRAY_FILTER_USE_K
         </div>
     </div>
 </section>
-<?php require 'includes/footer.php'; ?>
+<?php 
+require 'includes/variant_modal.php';
+require 'includes/footer.php'; 
+?>

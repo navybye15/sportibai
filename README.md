@@ -77,44 +77,63 @@
 
 ```
 sportibai/
-├── admin/                  # Admin dashboard & management pages
-│   ├── index.php           # Admin overview & metrics
-│   ├── items.php           # Catalog inventory management
-│   ├── categories.php      # Category management
-│   ├── orders.php          # 7-step status order pipeline
-│   ├── users.php           # User account status management
-│   ├── expenses.php        # Operating expenses tracking
-│   └── sales_report.php    # Sales analytics & revenue reports
-├── config/                 # Private configuration
+├── .agents/skills/         # Antigravity UI/UX Pro Max and Design skills
+├── admin/                  # Admin executive dashboard & backoffice suite
+│   ├── index.php           # Executive command center with live KPI ribbon & operations hub
+│   ├── items.php           # Catalog inventory management with stock filters & search
+│   ├── item_edit.php       # Product editor with multi-size stock matrix & image manager
+│   ├── categories.php      # Category taxonomy with inline quick-rename & product links
+│   ├── orders.php          # Fulfillment pipeline with status indicators & receipt generator
+│   ├── users.php           # User account identity management & role control
+│   ├── expenses.php        # Operating expenses ledger & outflow KPIs
+│   ├── account.php         # Admin profile & security credentials manager
+│   └── sales_report.php    # Sales analytics, profit calculations & revenue reports
+├── actions/                # Invisible backend transaction processing endpoints
+│   ├── cart_update.php     # Cart add/update/remove & size selection handler
+│   ├── cancel_order.php    # Customer order cancellation & inventory restocking
+│   ├── receive_order.php   # Delivery confirmation & review unlock handler
+│   └── download_receipt.php# Official PDF receipt stream & download
+├── auth/                   # Authentication & access management
+│   ├── login.php           # Secure login with brute-force rate limit protection
+│   ├── register.php        # Customer registration with avatar photo upload
+│   ├── logout.php          # Session termination
+│   ├── forgot_password.php # Password reset request via PHPMailer
+│   └── reset_password.php  # Token-verified password reset
+├── config/                 # Private server configuration
 │   ├── db_config.php       # Active DB credentials (git-ignored)
 │   └── db_config.example.php # Example template
 ├── css/
-│   └── style.css           # Design system tokens, dark aesthetics & micro-animations
+│   └── style.css           # Design tokens, dark athletic aesthetics & micro-animations
 ├── database/               # SQL schemas and migration scripts
 │   ├── sportibai.sql       # Baseline schema
-│   └── migration_v3.sql    # Order tabs, snapshots, reference numbers
+│   ├── migration_v3.sql    # Order tabs, snapshots, reference numbers
+│   ├── migration_v4.sql    # Cost price & inventory audit trail
+│   ├── migration_v5.sql    # Multi-photo gallery, reviews, and reporting views
+│   └── migrate_item_sizes.php # Size variation migration runner
 ├── images/
 │   ├── spotibai-avatar.jpg # 3D sphere texture asset
-│   └── uploads/            # Uploaded catalog item images (protected by .htaccess)
+│   └── uploads/            # Uploaded catalog item & profile images (protected by .htaccess)
 ├── includes/               # Reusable modular components
 │   ├── db.php              # Secure database connection & session setup
-│   ├── functions.php       # Helpers (CSRF, session check, tiles, currency)
-│   ├── header.php          # Global navigation bar & header
+│   ├── functions.php       # Helpers (CSRF, session guard, currency, photo upload)
+│   ├── header.php          # Global navigation bar & header (with Admin Sub-Nav bar)
 │   ├── footer.php          # Global footer & privacy policy notice
-│   └── alert.php           # Flash notification banners
+│   ├── alert.php           # Flash notification banners
+│   ├── admin_guard.php     # Strict RBAC access controller for admin routes
+│   └── variant_modal.php   # Interactive gear variation & size selector modal
 ├── js/
-│   ├── app.js              # Reveal animations, anchor restoration, BrewedOps stage slider
+│   ├── app.js              # Reveal animations, anchor restoration, modal controllers
 │   ├── spotibai-3d.js      # Three.js 3D avatar controller
 │   └── three.min.js        # Local Three.js library
+├── lib/                    # Third-party vendor libraries (PHPMailer, FPDF)
 ├── logs/                   # Protected PHP error logs (git-ignored)
 ├── index.php               # Customer homepage (3D hero, highlights, why sportibai)
 ├── shop.php                # Full product catalog with filter & search
+├── view_cart.php           # Shopping cart review & checkout launch
 ├── checkout.php            # Shopee-style fulfillment & order placement
-├── orders.php              # Customer orders dashboard (5 status tabs)
+├── orders.php              # Customer orders dashboard (status tabs & tracking)
 ├── order_detail.php        # Single order tracking & receipt view
-├── profile.php             # Customer profile & password management
-├── login.php               # Secure login with brute-force rate limit
-└── register.php            # Customer registration
+└── profile.php             # Customer profile & address management
 ```
 
 ---

@@ -6,7 +6,7 @@ require_once 'includes/db.php';
 require_once 'includes/functions.php';
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
+    header('Location: auth/login.php');
     exit;
 }
 
@@ -231,7 +231,7 @@ require 'includes/header.php';
             <!-- Actions -->
             <div class="order-card-actions">
                 <a href="order_detail.php?id=<?= $o['order_id'] ?>" class="btn ghost sm">View Details</a>
-                <a href="download_receipt.php?order_id=<?= $o['order_id'] ?>" target="_blank" class="btn ghost sm" style="font-size:11px;">📄 PDF Receipt</a>
+                <a href="actions/download_receipt.php?order_id=<?= $o['order_id'] ?>" target="_blank" class="btn ghost sm" style="font-size:11px;">📄 PDF Receipt</a>
                 
                 <?php if ($o['status'] === 'Completed') { 
                     $items_in_order = $order_items[$o['order_id']] ?? array();
@@ -249,7 +249,7 @@ require 'includes/header.php';
                 <?php } ?>
 
                 <?php if ($can_receive) { ?>
-                    <form method="POST" action="receive_order.php" style="display:inline;">
+                    <form method="POST" action="actions/receive_order.php" style="display:inline;">
                         <?= csrf_field() ?>
                         <input type="hidden" name="order_id" value="<?= $o['order_id'] ?>">
                         <button class="btn sm" type="submit"
@@ -264,7 +264,7 @@ require 'includes/header.php';
                     </button>
                 <?php } ?>
                 <?php if ($can_cancel) { ?>
-                    <form method="POST" action="cancel_order.php" style="display:inline;">
+                    <form method="POST" action="actions/cancel_order.php" style="display:inline;">
                         <?= csrf_field() ?>
                         <input type="hidden" name="order_id" value="<?= $o['order_id'] ?>">
                         <button class="btn ghost sm" type="submit"

@@ -53,32 +53,77 @@ if (isset($_POST['update_role'])) {
     exit;
 }
 
-// ── Fetch users ──────────────────────────────────────────────────────────────
+// ── Fetch users with optional search & filter ────────────────────────────────
+$search_u = trim($_GET['q'] ?? '');
+$filter_role = $_GET['role'] ?? 'all';
+$filter_status = $_GET['status'] ?? 'all';
+
 $users = array();
+$where_u = array();
+$params_u = array();
+
+if ($search_u !== '') {
+    $where_u[] = "(u.email LIKE ? OR c.first_name LIKE ? OR c.last_name LIKE ? OR c.phone LIKE ?)";
+    $like = '%' . $search_u . '%';
+    $params_u[] = $like; $params_u[] = $like; $params_u[] = $like; $params_u[] = $like;
+}
+if ($filter_role === 'admin' || $filter_role === 'user') {
+    $where_u[] = "u.role = ?";
+    $params_u[] = $filter_role;
+}
+if ($filter_status === 'active' || $filter_status === 'inactive') {
+    $where_u[] = "u.status = ?";
+    $params_u[] = $filter_status;
+}
+
+$where_sql = count($where_u) > 0 ? ('WHERE ' . implode(' AND ', $where_u)) : '';
 $sql = "SELECT u.user_id, u.email, u.role, u.status, u.profile_photo, u.created_at,
                c.first_name, c.last_name, c.phone
         FROM users u
         LEFT JOIN customer c ON u.user_id = c.user_id
+        $where_sql
         ORDER BY u.user_id DESC";
-$res = mysqli_query($conn, $sql);
+$res = count($params_u) > 0 ? mysqli_execute_query($conn, $sql, $params_u) : mysqli_query($conn, $sql);
 while ($row = mysqli_fetch_assoc($res)) {
     $users[] = $row;
 }
 
 $base = '../';
-$page_title = 'Manage Users | Sportibai';
+$page_title = 'Manage Users | Sportibai Admin';
 require '../includes/header.php';
 ?>
 
-<section class="reveal">
+<section class="reveal in">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
         <div>
-            <div class="hero-eyebrow">[ ACCOUNT CONTROL ]</div>
-            <h1 style="font-size:var(--text-display-l)">User Accounts</h1>
+            <div class="hero-eyebrow" style="color:var(--color-brand-red);">[ IDENTITY & ACCESS CONTROL ]</div>
+            <h1 style="font-size:var(--text-display-l); line-height:1.15; margin:2px 0 0;">User Accounts</h1>
         </div>
     </div>
 
     <?php require '../includes/alert.php'; ?>
+
+    <!-- User Search & Filter Toolbar -->
+    <form method="GET" action="users.php" class="filter-search-bar" style="margin-bottom:1.75rem;">
+        <input type="search" name="q" class="search" placeholder="Search by name, email, or phone…" value="<?= htmlspecialchars($search_u) ?>" style="min-width:14rem;">
+        
+        <select name="role" class="search" style="max-width:11rem;" onchange="this.form.submit()">
+            <option value="all" <?= $filter_role === 'all' ? 'selected' : '' ?>>All Roles</option>
+            <option value="user" <?= $filter_role === 'user' ? 'selected' : '' ?>>Customer (User)</option>
+            <option value="admin" <?= $filter_role === 'admin' ? 'selected' : '' ?>>Administrator</option>
+        </select>
+
+        <select name="status" class="search" style="max-width:11rem;" onchange="this.form.submit()">
+            <option value="all" <?= $filter_status === 'all' ? 'selected' : '' ?>>All Statuses</option>
+            <option value="active" <?= $filter_status === 'active' ? 'selected' : '' ?>>Active Only</option>
+            <option value="inactive" <?= $filter_status === 'inactive' ? 'selected' : '' ?>>Inactive Only</option>
+        </select>
+
+        <button class="btn sm" type="submit">Filter</button>
+        <?php if ($search_u !== '' || $filter_role !== 'all' || $filter_status !== 'all') { ?>
+            <a href="users.php" class="btn ghost sm">Reset</a>
+        <?php } ?>
+    </form>
 
     <div class="order-list">
         <?php foreach ($users as $u) {
