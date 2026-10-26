@@ -25,80 +25,140 @@ $errors = array();
 $password_errors = array();
 
 // ── Handle Tab 1 & Tab 2: Profile & Shipping Details Update ─────────────────
-if (isset($_POST['save_profile'])) {
+if (isset($_POST['save_profile']) || isset($_POST['save_and_next'])) {
     if (!csrf_verify()) {
         header('Location: profile.php' . ($return_to ? '?return=' . urlencode($return_to) : ''));
         exit;
     }
 
-    $first_name  = strip_tags(trim($_POST['first_name'] ?? ''));
-    $last_name   = strip_tags(trim($_POST['last_name'] ?? ''));
-    $address     = strip_tags(trim($_POST['address'] ?? ''));
-    $province    = strip_tags(trim($_POST['province'] ?? ''));
-    $postal_code = strip_tags(trim($_POST['postal_code'] ?? ''));
-    $landmark    = strip_tags(trim($_POST['landmark'] ?? ''));
-    $phone       = strip_tags(trim($_POST['phone'] ?? ''));
+    if ($active_tab === 'personal') {
+        $first_name = strip_tags(trim($_POST['first_name'] ?? ''));
+        $last_name  = strip_tags(trim($_POST['last_name'] ?? ''));
+        $phone      = strip_tags(trim($_POST['phone'] ?? ''));
 
-    // Pure PHP validation (MP5 Requirement: No HTML5 validation attributes)
-    if ($first_name === '') {
-        $errors['first_name'] = 'First name is required.';
-    }
-    if ($last_name === '') {
-        $errors['last_name'] = 'Last name is required.';
-    }
-    if ($address === '') {
-        $errors['address'] = 'Street / Barangay address is required.';
-    }
-    if ($phone === '') {
-        $errors['phone'] = 'Contact number is required.';
-    } elseif (!preg_match('/^09\d{9}$/', $phone)) {
-        $errors['phone'] = 'Please enter a valid 11-digit Philippine mobile number starting with 09 (e.g. 09171234567).';
-    }
-
-    // Photo upload handling (MP2 Requirement: Update profile with upload photo)
-    $uploaded_photo = '';
-    if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] !== UPLOAD_ERR_NO_FILE) {
-        try {
-            $uploaded_photo = handle_user_photo($_FILES['profile_photo']);
-        } catch (Exception $e) {
-            $errors['profile_photo'] = $e->getMessage();
+        // Pure PHP validation (MP5 Requirement: No HTML5 validation attributes)
+        if ($first_name === '') {
+            $errors['first_name'] = 'First name is required.';
         }
-    }
-
-    if (empty($errors)) {
-        if ($conn == null) {
-            $_SESSION['message'] = 'Database is not connected yet.';
-            header('Location: profile.php' . ($return_to ? '?return=' . urlencode($return_to) : ''));
-            exit;
+        if ($last_name === '') {
+            $errors['last_name'] = 'Last name is required.';
+        }
+        if ($phone === '') {
+            $errors['phone'] = 'Contact number is required.';
+        } elseif (!preg_match('/^09\d{9}$/', $phone)) {
+            $errors['phone'] = 'Please enter a valid 11-digit Philippine mobile number starting with 09 (e.g. 09171234567).';
         }
 
-        try {
-            // Update profile photo in users table if a new photo was uploaded
-            if ($uploaded_photo !== '') {
-                $sql = "UPDATE users SET profile_photo = ? WHERE user_id = ?";
-                mysqli_execute_query($conn, $sql, array($uploaded_photo, $_SESSION['user_id']));
+        // Photo upload handling (MP2 Requirement: Update profile with upload photo)
+        $uploaded_photo = '';
+        if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+            try {
+                $uploaded_photo = handle_user_photo($_FILES['profile_photo']);
+            } catch (Exception $e) {
+                $errors['profile_photo'] = $e->getMessage();
+            }
+        }
+
+        if (empty($errors)) {
+            if ($conn == null) {
+                $_SESSION['message'] = 'Database is not connected yet.';
+                header('Location: profile.php?tab=personal' . ($return_to ? '&return=' . urlencode($return_to) : ''));
+                exit;
             }
 
-            // Upsert customer record
-            $sql = "SELECT customer_id FROM customer WHERE user_id = ? LIMIT 1";
-            $result = mysqli_execute_query($conn, $sql, array($_SESSION['user_id']));
-            if (mysqli_num_rows($result) == 1) {
-                $sql = "UPDATE customer SET first_name = ?, last_name = ?, address = ?, province = ?, postal_code = ?, landmark = ?, phone = ? WHERE user_id = ?";
-                mysqli_execute_query($conn, $sql, array($first_name, $last_name, $address, $province, $postal_code, $landmark, $phone, $_SESSION['user_id']));
-            } else {
-                $sql = "INSERT INTO customer (user_id, first_name, last_name, address, province, postal_code, landmark, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-                mysqli_execute_query($conn, $sql, array($_SESSION['user_id'], $first_name, $last_name, $address, $province, $postal_code, $landmark, $phone));
+            try {
+                // Update profile photo in users table if a new photo was uploaded
+                if ($uploaded_photo !== '') {
+                    $sql = "UPDATE users SET profile_photo = ? WHERE user_id = ?";
+                    mysqli_execute_query($conn, $sql, array($uploaded_photo, $_SESSION['user_id']));
+                }
+
+                // Upsert customer record (only update personal details)
+                $sql = "SELECT customer_id, address FROM customer WHERE user_id = ? LIMIT 1";
+                $result = mysqli_execute_query($conn, $sql, array($_SESSION['user_id']));
+                $has_address = false;
+                if ($row = mysqli_fetch_assoc($result)) {
+                    $has_address = !empty(trim($row['address'] ?? ''));
+                    $sql = "UPDATE customer SET first_name = ?, last_name = ?, phone = ? WHERE user_id = ?";
+                    mysqli_execute_query($conn, $sql, array($first_name, $last_name, $phone, $_SESSION['user_id']));
+                } else {
+                    $sql = "INSERT INTO customer (user_id, first_name, last_name, phone, address, province, postal_code, landmark) VALUES (?, ?, ?, ?, '', '', '', '')";
+                    mysqli_execute_query($conn, $sql, array($_SESSION['user_id'], $first_name, $last_name, $phone));
+                }
+
+                if (isset($_POST['save_and_next'])) {
+                    $_SESSION['success'] = 'Personal details saved. Now add your delivery address.';
+                    header('Location: profile.php?tab=address' . ($return_to ? '&return=' . urlencode($return_to) : ''));
+                    exit;
+                }
+
+                if ($return_to === 'checkout') {
+                    if (!$has_address) {
+                        $_SESSION['message'] = 'Personal details saved! Please add your delivery address to proceed with checkout.';
+                        header('Location: profile.php?tab=address&return=checkout');
+                        exit;
+                    }
+                    $_SESSION['success'] = 'Personal details saved successfully.';
+                    header('Location: checkout.php');
+                    exit;
+                } else {
+                    $_SESSION['success'] = 'Personal details saved successfully.';
+                    header('Location: profile.php?tab=personal');
+                    exit;
+                }
+            } catch (mysqli_sql_exception $e) {
+                $errors['general'] = 'Database error: ' . $e->getMessage();
+            }
+        }
+    } elseif ($active_tab === 'address') {
+        $address     = strip_tags(trim($_POST['address'] ?? ''));
+        $province    = strip_tags(trim($_POST['province'] ?? ''));
+        $postal_code = strip_tags(trim($_POST['postal_code'] ?? ''));
+        $landmark    = strip_tags(trim($_POST['landmark'] ?? ''));
+
+        // Pure PHP validation
+        if ($address === '') {
+            $errors['address'] = 'Street / Barangay address is required.';
+        }
+
+        if (empty($errors)) {
+            if ($conn == null) {
+                $_SESSION['message'] = 'Database is not connected yet.';
+                header('Location: profile.php?tab=address' . ($return_to ? '&return=' . urlencode($return_to) : ''));
+                exit;
             }
 
-            $_SESSION['success'] = 'Profile details saved successfully.';
-            if ($return_to === 'checkout') {
-                header('Location: checkout.php');
-            } else {
-                header('Location: profile.php?tab=' . urlencode($active_tab));
+            try {
+                // Upsert customer record (only update delivery address details)
+                $sql = "SELECT customer_id, first_name, phone FROM customer WHERE user_id = ? LIMIT 1";
+                $result = mysqli_execute_query($conn, $sql, array($_SESSION['user_id']));
+                $has_personal = false;
+                if ($row = mysqli_fetch_assoc($result)) {
+                    $has_personal = !empty(trim($row['first_name'] ?? '')) && !empty(trim($row['phone'] ?? ''));
+                    $sql = "UPDATE customer SET address = ?, province = ?, postal_code = ?, landmark = ? WHERE user_id = ?";
+                    mysqli_execute_query($conn, $sql, array($address, $province, $postal_code, $landmark, $_SESSION['user_id']));
+                } else {
+                    $sql = "INSERT INTO customer (user_id, first_name, last_name, phone, address, province, postal_code, landmark) VALUES (?, '', '', '', ?, ?, ?, ?)";
+                    mysqli_execute_query($conn, $sql, array($_SESSION['user_id'], $address, $province, $postal_code, $landmark));
+                }
+
+                if ($return_to === 'checkout') {
+                    if (!$has_personal) {
+                        $_SESSION['message'] = 'Delivery address saved! Please complete your name and contact number to proceed with checkout.';
+                        header('Location: profile.php?tab=personal&return=checkout');
+                        exit;
+                    }
+                    $_SESSION['success'] = 'Delivery address saved successfully.';
+                    header('Location: checkout.php');
+                    exit;
+                } else {
+                    $_SESSION['success'] = 'Delivery address saved successfully.';
+                    header('Location: profile.php?tab=address');
+                    exit;
+                }
+            } catch (mysqli_sql_exception $e) {
+                $errors['general'] = 'Database error: ' . $e->getMessage();
             }
-            exit;
-        } catch (mysqli_sql_exception $e) {
-            $errors['general'] = 'Database error: ' . $e->getMessage();
         }
     }
 }
@@ -182,14 +242,34 @@ if ($conn != null) {
     }
 }
 
-// Retain typed values if validation error occurred, otherwise use DB values
-$first_name  = isset($_POST['first_name']) ? $_POST['first_name'] : $db_first_name;
-$last_name   = isset($_POST['last_name']) ? $_POST['last_name'] : $db_last_name;
-$address     = isset($_POST['address']) ? $_POST['address'] : $db_address;
-$province    = isset($_POST['province']) ? $_POST['province'] : $db_province;
-$postal_code = isset($_POST['postal_code']) ? $_POST['postal_code'] : $db_postal_code;
-$landmark    = isset($_POST['landmark']) ? $_POST['landmark'] : $db_landmark;
-$phone       = isset($_POST['phone']) ? $_POST['phone'] : $db_phone;
+// Retain typed values if validation error occurred on active tab, otherwise use DB values
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($errors)) {
+    if ($active_tab === 'personal') {
+        $first_name  = $_POST['first_name'] ?? $db_first_name;
+        $last_name   = $_POST['last_name'] ?? $db_last_name;
+        $phone       = $_POST['phone'] ?? $db_phone;
+        $address     = $db_address;
+        $province    = $db_province;
+        $postal_code = $db_postal_code;
+        $landmark    = $db_landmark;
+    } else {
+        $first_name  = $db_first_name;
+        $last_name   = $db_last_name;
+        $phone       = $db_phone;
+        $address     = $_POST['address'] ?? $db_address;
+        $province    = $_POST['province'] ?? $db_province;
+        $postal_code = $_POST['postal_code'] ?? $db_postal_code;
+        $landmark    = $_POST['landmark'] ?? $db_landmark;
+    }
+} else {
+    $first_name  = $db_first_name;
+    $last_name   = $db_last_name;
+    $phone       = $db_phone;
+    $address     = $db_address;
+    $province    = $db_province;
+    $postal_code = $db_postal_code;
+    $landmark    = $db_landmark;
+}
 
 $page_title = 'My Profile | Sportibai';
 require_once __DIR__ . '/includes/header.php';
@@ -228,18 +308,6 @@ require_once __DIR__ . '/includes/header.php';
         <input type="hidden" name="active_tab" value="<?= htmlspecialchars($active_tab) ?>">
         <?php if ($return_to) { ?>
             <input type="hidden" name="return" value="<?= htmlspecialchars($return_to) ?>">
-        <?php } ?>
-
-        <!-- Hidden input fields to preserve data between tabs -->
-        <?php if ($active_tab === 'personal') { ?>
-            <input type="hidden" name="address" value="<?= htmlspecialchars($address) ?>">
-            <input type="hidden" name="province" value="<?= htmlspecialchars($province) ?>">
-            <input type="hidden" name="postal_code" value="<?= htmlspecialchars($postal_code) ?>">
-            <input type="hidden" name="landmark" value="<?= htmlspecialchars($landmark) ?>">
-        <?php } else { ?>
-            <input type="hidden" name="first_name" value="<?= htmlspecialchars($first_name) ?>">
-            <input type="hidden" name="last_name" value="<?= htmlspecialchars($last_name) ?>">
-            <input type="hidden" name="phone" value="<?= htmlspecialchars($phone) ?>">
         <?php } ?>
 
         <?php if (isset($errors['general'])) { ?>
@@ -298,9 +366,10 @@ require_once __DIR__ . '/includes/header.php';
                     <?php } ?>
                 </div>
 
-                <div style="margin-top:1.5rem; display:flex; gap:1rem; align-items:center;">
+                <div style="margin-top:1.5rem; display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
                     <button class="btn" type="submit" name="save_profile">Save Personal Details</button>
-                    <a href="profile.php?tab=address<?= $return_to ? '&return=' . urlencode($return_to) : '' ?>" class="btn ghost sm">Next: Shipping Address →</a>
+                    <button class="btn ghost sm" type="submit" name="save_and_next" value="address">Save &amp; Go to Delivery Address →</button>
+                    <a href="profile.php?tab=address<?= $return_to ? '&return=' . urlencode($return_to) : '' ?>" class="muted" style="font-size:12px; margin-left:auto;">Switch to Delivery Address →</a>
                 </div>
             </div>
         <?php } ?>
@@ -338,11 +407,11 @@ require_once __DIR__ . '/includes/header.php';
                     <textarea name="landmark" rows="2" placeholder="e.g. Near 7-Eleven, blue gate" style="margin-top:0.5rem;"><?php echo htmlspecialchars($landmark); ?></textarea>
                 </div>
 
-                <div style="margin-top:1.5rem; display:flex; gap:1rem; align-items:center;">
+                <div style="margin-top:1.5rem; display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
                     <button class="btn" type="submit" name="save_profile">Save Delivery Address</button>
                     <a href="profile.php?tab=personal<?= $return_to ? '&return=' . urlencode($return_to) : '' ?>" class="btn ghost sm">← Back to Personal Info</a>
                     <?php if ($return_to === 'checkout') { ?>
-                        <a href="checkout.php" class="btn sm" style="margin-left:auto;">Proceed to Checkout →</a>
+                        <button class="btn sm" type="submit" name="save_profile" style="margin-left:auto;">Save &amp; Proceed to Checkout →</button>
                     <?php } ?>
                 </div>
             </div>

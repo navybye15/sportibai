@@ -20,12 +20,26 @@ $sql = "SELECT customer_id, first_name, last_name, phone, address,
         FROM customer WHERE user_id = ? LIMIT 1";
 $result = mysqli_execute_query($conn, $sql, array($_SESSION['user_id']));
 if (mysqli_num_rows($result) != 1) {
-    $_SESSION['message'] = 'Please complete your profile before checking out.';
-    header('Location: profile.php');
+    $_SESSION['message'] = 'Please complete your personal details before checking out.';
+    header('Location: profile.php?tab=personal&return=checkout');
     exit;
 }
 $customer    = mysqli_fetch_assoc($result);
 $customer_id = $customer['customer_id'];
+
+// Check if personal details are filled
+if (empty(trim($customer['first_name'] ?? '')) || empty(trim($customer['phone'] ?? ''))) {
+    $_SESSION['message'] = 'Please complete your personal details and contact number before checking out.';
+    header('Location: profile.php?tab=personal&return=checkout');
+    exit;
+}
+
+// Check if shipping address is filled
+if (empty(trim($customer['address'] ?? ''))) {
+    $_SESSION['message'] = 'Please provide your delivery address before checking out.';
+    header('Location: profile.php?tab=address&return=checkout');
+    exit;
+}
 
 // ── Must have cart items ───────────────────────────────────────────────────────
 $cart = isset($_SESSION['cart']) ? $_SESSION['cart'] : array();
@@ -268,7 +282,7 @@ require 'includes/header.php';
                             <span class="muted" style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:1px;">
                                 Delivery Details
                             </span>
-                            <a href="profile.php?return=checkout" class="btn ghost sm" style="font-size:10px; padding:4px 10px;">Edit Saved Profile</a>
+                            <a href="profile.php?tab=address&return=checkout" class="btn ghost sm" style="font-size:10px; padding:4px 10px;">Edit Saved Address</a>
                         </div>
                         <div style="margin-bottom:1rem;">
                             <label class="form-label" style="margin-bottom:6px; display:block;">Recipient Name</label>
