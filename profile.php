@@ -334,7 +334,7 @@ require_once __DIR__ . '/includes/header.php';
                             <button type="button" class="btn ghost sm" onclick="document.getElementById('profile_photo_file').click();">📷 Change Profile Photo</button>
                             <span id="photo_file_name" class="muted" style="font-size:12px; margin-left:8px;"></span>
                         </div>
-                        <span class="muted" style="font-size:11px; display:block; margin-top:4px;">JPG, PNG, or WEBP (Max 2MB)</span>
+                        <span class="muted" style="font-size:11px; display:block; margin-top:4px;">JPG, PNG, or WEBP (Max 10MB)</span>
                         <?php if (isset($errors['profile_photo'])) { ?>
                             <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors['profile_photo']) ?></div>
                         <?php } ?>

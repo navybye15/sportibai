@@ -418,7 +418,7 @@ require '../includes/header.php';
                         <div style="flex:1;">
                             <label class="form-label" style="font-size:11px;">Change Cover Photo</label>
                             <input type="file" name="image" accept=".jpg,.jpeg,.png,.webp" style="font-size:12px; padding:6px;">
-                            <p class="muted" style="font-size:11px; margin-top:4px;">JPG, PNG, WEBP (Max 2MB). Shown on catalog and tiles.</p>
+                            <p class="muted" style="font-size:11px; margin-top:4px;">JPG, PNG, WEBP (Max 10MB). Shown on catalog and tiles.</p>
                         </div>
                     </div>
                 </div>

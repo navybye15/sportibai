@@ -123,7 +123,7 @@ require __DIR__ . '/../includes/header.php';
                 <button type="button" class="btn ghost sm" onclick="document.getElementById('reg_photo_input').click();">📷 Choose Avatar Photo</button>
                 <span id="reg_photo_preview_name" class="muted" style="font-size:12px;"></span>
             </div>
-            <p class="muted" style="font-size:11px; margin-top:4px;">JPG, PNG, or WEBP (Max 2MB). You can also set or change this anytime in My Profile.</p>
+            <p class="muted" style="font-size:11px; margin-top:4px;">JPG, PNG, or WEBP (Max 10MB). You can also set or change this anytime in My Profile.</p>
             <?php if (isset($errors['profile_photo'])) { ?>
                 <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors['profile_photo']) ?></div>
             <?php } ?>

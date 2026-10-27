@@ -7,8 +7,7 @@ if ($conn == null) {
     die('Database is not connected.');
 }
 
-// ── Status transition rules ───────────────────────────────────────────────────
-// Keeping all rules in one place prevents bypassing via direct POST.
+
 function allowed_next_statuses($current_status, $order_type) {
     switch ($current_status) {
         case 'Pending':
@@ -27,14 +26,14 @@ function allowed_next_statuses($current_status, $order_type) {
         case 'Ready for Pick Up':
             return array('Delivered', 'Cancelled');
         case 'Delivered':
-            // Customer marks Completed via receive_order.php, but admin can also force it
+            
             return array('Completed');
     }
-    // Completed and Cancelled are final
+  
     return array();
 }
 
-// ── Handle status update POST ─────────────────────────────────────────────────
+
 if (isset($_POST['update_status'])) {
     if (!csrf_verify()) {
         header('Location: orders.php');
@@ -58,7 +57,7 @@ if (isset($_POST['update_status'])) {
         }
 
         if ($new_status === 'Cancelled') {
-            // Return stock for all items (both per-size stock and total item stock)
+           
             $sql    = "SELECT item_id, selected_size, quantity FROM order_items WHERE order_id = ?";
             $result = mysqli_execute_query($conn, $sql, array($order_id));
             while ($row = mysqli_fetch_assoc($result)) {
@@ -78,13 +77,13 @@ if (isset($_POST['update_status'])) {
             mysqli_execute_query($conn, $sql, array($new_status, $order_id));
         }
 
-        // Log every status change
+    
         $sql = "INSERT INTO order_status_log (order_id, status, changed_by) VALUES (?, ?, 'admin')";
         mysqli_execute_query($conn, $sql, array($order_id, $new_status));
 
         mysqli_commit($conn);
 
-        // Term Test Lab requirement: Send email to customer on status update + PDF attachment
+        
         require_once __DIR__ . '/../includes/mailer.php';
         send_order_status_update_email($order_id, $new_status, $conn);
 

@@ -16,7 +16,7 @@ function get_all_items($conn) {
 }
 
 function find_item($conn, $id) {
-    // No database yet: look in the sample items instead
+
     if ($conn == null) {
         $all = get_all_items($conn);
         foreach ($all as $item) {
@@ -53,10 +53,10 @@ function handle_item_image($file) {
         throw new Exception('Image upload failed.');
     }
 
-    // 1. Limit file size (2 MB)
-    $max_size = 2 * 1024 * 1024;
+    // 1. Limit file size (10 MB)
+    $max_size = 10 * 1024 * 1024;
     if ($file['size'] > $max_size) {
-        throw new Exception('Image is too large. Max size is 2MB.');
+        throw new Exception('Image is too large. Max size is 10MB.');
     }
 
     // 2. Only allow a small whitelist of extensions
@@ -99,10 +99,10 @@ function handle_user_photo($file) {
         throw new Exception('Profile photo upload failed.');
     }
 
-    // 1. Limit file size (2 MB)
-    $max_size = 2 * 1024 * 1024;
+    // 1. Limit file size (10 MB)
+    $max_size = 10 * 1024 * 1024;
     if ($file['size'] > $max_size) {
-        throw new Exception('Profile photo is too large. Max size is 2MB.');
+        throw new Exception('Profile photo is too large. Max size is 10MB.');
     }
 
     // 2. Allowed extensions
@@ -271,7 +271,7 @@ function handle_multiple_item_images($files, $item_id, $conn) {
     $count = count($files['name']);
     $allowed_ext = array('jpg', 'jpeg', 'png', 'webp');
     $allowed_mime = array('image/jpeg', 'image/png', 'image/webp');
-    $max_size = 3 * 1024 * 1024; // 3MB
+    $max_size = 10 * 1024 * 1024; // 10MB
 
     for ($i = 0; $i < $count; $i++) {
         if ($files['error'][$i] == UPLOAD_ERR_NO_FILE) {

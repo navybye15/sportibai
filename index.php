@@ -5,7 +5,7 @@ $base       = '';
 $page_title = 'Sportibai — Gear Up. Get After It.';
 require 'includes/header.php';
 
-// ── Load categories for highlights ────────────────────────────────────────────
+
 $categories = array();
 if ($conn != null) {
     $sql = "SELECT c.name, COUNT(i.item_id) AS item_count
@@ -21,7 +21,7 @@ if ($conn != null) {
     }
 }
 
-// ── Load 4 Featured / Best-Selling Items ──────────────────────────────────────
+
 $featured_items = array();
 $featured_sizes = array();
 if ($conn != null) {

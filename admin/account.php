@@ -180,7 +180,7 @@ require '../includes/header.php';
                         <button type="button" class="btn ghost sm" onclick="document.getElementById('admin_photo_input').click();">📷 Choose Avatar Image</button>
                         <span id="admin_photo_name" class="muted" style="font-size:12px;"></span>
                     </div>
-                    <small class="muted" style="font-size:11px; display:block; margin-top:6px;">Supported: JPG, PNG, or WEBP (Max 2MB)</small>
+                    <small class="muted" style="font-size:11px; display:block; margin-top:6px;">Supported: JPG, PNG, or WEBP (Max 10MB)</small>
                     <?php if (isset($errors_account['profile_photo'])) { ?>
                         <div class="field-error">⚠️ <?= htmlspecialchars($errors_account['profile_photo']) ?></div>
                     <?php } ?>
