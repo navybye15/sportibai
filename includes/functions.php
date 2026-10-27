@@ -140,16 +140,23 @@ function parse_review_images($raw) {
         return array_values(array_filter($raw));
     }
     $trimmed = trim($raw);
-    if (str_starts_with($trimmed, '[') || str_starts_with($trimmed, '{')) {
-        $decoded = json_decode($trimmed, true);
-        if (is_array($decoded)) {
-            return array_values(array_filter($decoded));
+    if ($trimmed === '') {
+        return array();
+    }
+    // Clean string and split by comma (supports legacy bracketed data and standard comma-separated lists)
+    $cleaned = str_replace(array('[', ']', '"', "'"), '', $trimmed);
+    $parts = explode(',', $cleaned);
+    $result = array();
+    foreach ($parts as $p) {
+        $p = trim($p);
+        if ($p !== '') {
+            $result[] = $p;
         }
     }
-    return array($trimmed);
+    return $result;
 }
 
-// ── Handle Customer Review Image Upload (MP4 single fallback) ───────────────
+// ── Handle Customer Review Image Upload (Single photo fallback) ───────────────
 function handle_review_image($file) {
     if (!isset($file) || $file['error'] == UPLOAD_ERR_NO_FILE) {
         return '';
@@ -193,13 +200,12 @@ function handle_multiple_review_images($files, $max_files = 5) {
         return '';
     }
 
-    // Convert single-file upload format to array format if needed
+    // Convert single-file upload format to string if needed
     if (!is_array($files['name'])) {
         if ($files['error'] == UPLOAD_ERR_NO_FILE) {
             return '';
         }
-        $single_img = handle_review_image($files);
-        return $single_img !== '' ? json_encode(array($single_img)) : '';
+        return handle_review_image($files);
     }
 
     $uploaded_images = array();
@@ -258,7 +264,7 @@ function handle_multiple_review_images($files, $max_files = 5) {
         return '';
     }
 
-    return json_encode($uploaded_images);
+    return implode(',', $uploaded_images);
 }
 
 // ── Handle Multiple Item Images (MP1) ────────────────────────────────────────

@@ -225,18 +225,9 @@ $all_link = count(array_filter($keep, fn($k) => $k !== 'cat', ARRAY_FILTER_USE_K
                                 <span class="muted" style="font-size:11px; text-transform:uppercase;">Admin view</span>
                             <?php } elseif ($item['stock'] > 0) { ?>
                                 <?php if ($has_item_sizes) { ?>
-                                    <button class="btn sm" type="button" onclick='openVariantModal(<?= htmlspecialchars(json_encode([
-                                        "id" => (int)$item["item_id"],
-                                        "name" => $item["name"],
-                                        "brand" => $item["brand"] !== "" ? $item["brand"] : $item["category"],
-                                        "category" => $item["category"],
-                                        "price" => peso($item["price"]),
-                                        "image" => !empty($item["image"]) ? "images/uploads/" . basename($item["image"]) : "",
-                                        "sizes" => $item_sizes_list,
-                                        "return_url" => "shop.php" . (count($_GET) > 0 ? ("?" . http_build_query($_GET)) : "") . "#item-" . $item["item_id"]
-                                    ]), ENT_QUOTES, "UTF-8") ?>)'>
-                                        Add to Cart
-                                    </button>
+                                    <a class="btn sm" href="item/detail.php?id=<?= $item['item_id'] ?>">
+                                        Select Size →
+                                    </a>
                                 <?php } else { ?>
                                     <form method="post" action="actions/cart_update.php">
                                         <input type="hidden" name="action" value="add">
@@ -285,6 +276,5 @@ $all_link = count(array_filter($keep, fn($k) => $k !== 'cat', ARRAY_FILTER_USE_K
     </div>
 </section>
 <?php 
-require 'includes/variant_modal.php';
 require 'includes/footer.php'; 
 ?>

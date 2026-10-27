@@ -409,8 +409,8 @@ CREATE TABLE `reviews` (
 --
 
 INSERT INTO `reviews` (`review_id`, `item_id`, `user_id`, `rating`, `comment`, `review_image`, `created_at`, `updated_at`) VALUES
-(1, 18, 1, 5, 'nice T shirt, it fits very well. Love this store, thank youu.', '[\"review_6ad314fbeed714.23729949.png\",\"review_6ad314fbef4418.18416455.jpg\",\"review_6ad314fbefa6d0.46080028.png\"]', '2026-10-14 14:20:01', '2026-10-17 06:26:03'),
-(5, 12, 3, 5, 'Thank you po so much nang marami, ako nalang sana, tayo nalang dalawa. sana malaman mo.', '[\"review_6ad325875e8ea9.39460562.jpg\",\"review_6ad325875eebe2.60791030.jpg\",\"review_6ad325875f4c49.54264558.jpg\"]', '2026-10-17 07:36:39', '2026-10-17 07:36:39'),
+(1, 18, 1, 5, 'nice T shirt, it fits very well. Love this store, thank youu.', 'review_6ad314fbeed714.23729949.png,review_6ad314fbef4418.18416455.jpg,review_6ad314fbefa6d0.46080028.png', '2026-10-14 14:20:01', '2026-10-17 06:26:03'),
+(5, 12, 3, 5, 'Thank you po so much nang marami, ako nalang sana, tayo nalang dalawa. sana malaman mo.', 'review_6ad325875e8ea9.39460562.jpg,review_6ad325875eebe2.60791030.jpg,review_6ad325875f4c49.54264558.jpg', '2026-10-17 07:36:39', '2026-10-17 07:36:39'),
 (6, 12, 9, 5, 'super fast, i ordered 2 mins , and now its here !!', NULL, '2026-10-19 00:36:25', '2026-10-19 00:36:25');
 
 -- --------------------------------------------------------
