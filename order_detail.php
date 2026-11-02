@@ -5,14 +5,14 @@ require_once __DIR__ . '/includes/customer_guard.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/functions.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: auth/login.php');
-    exit;
-}
-
 $order_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($order_id < 1) {
     header('Location: orders.php');
+    exit;
+}
+
+if (!isset($_SESSION['user_id'])) {
+    header('Location: auth/login.php?redirect=' . urlencode('order_detail.php?id=' . $order_id));
     exit;
 }
 
@@ -46,6 +46,15 @@ if ($conn != null) {
     $result = mysqli_execute_query($conn, $sql, array($order_id));
     while ($row = mysqli_fetch_assoc($result)) {
         $items[] = $row;
+    }
+}
+
+// ── Load reviews for this specific order ─────────────────────────────────────
+$order_reviews = array();
+if ($conn != null) {
+    $rev_res = mysqli_execute_query($conn, "SELECT review_id, item_id, rating, comment FROM reviews WHERE order_id = ?", array($order_id));
+    while ($rw = mysqli_fetch_assoc($rev_res)) {
+        $order_reviews[(int)$rw['item_id']] = $rw;
     }
 }
 
@@ -103,29 +112,31 @@ require __DIR__ . '/includes/header.php';
 
 <?php
 $status_banners = array(
-    'Pending'           => array('title' => 'Order Placed', 'desc' => 'Waiting for the shop to review and prepare your items.', 'icon' => '⏳'),
-    'Prepared'          => array('title' => 'Seller is Preparing Your Order', 'desc' => 'Your items are being packed and checked.', 'icon' => '📦'),
-    'Ready to Ship'     => array('title' => 'Ready for Courier Pick Up', 'desc' => 'Your package is sealed and waiting for courier dispatch.', 'icon' => '🚚'),
-    'Ready for Pick Up' => array('title' => 'Ready for Store Pick Up', 'desc' => 'You may now visit our store and present your Reference Number.', 'icon' => '🏪'),
-    'Shipped'           => array('title' => 'Parcel Has Shipped', 'desc' => 'Your order is currently in transit with the courier.', 'icon' => '✈️'),
-    'Out for Delivery'  => array('title' => 'Out for Delivery', 'desc' => 'Rider is on the way to your delivery address today.', 'icon' => '🛵'),
-    'Delivered'         => array('title' => 'Parcel Delivered', 'desc' => 'Please inspect your items and click "Order Received" below.', 'icon' => '📍'),
-    'Completed'         => array('title' => 'Order Completed', 'desc' => 'Thank you for shopping with Sportibai!', 'icon' => '🎉'),
-    'Cancelled'         => array('title' => 'Order Cancelled', 'desc' => 'This order was cancelled and inventory has been restored.', 'icon' => '✕'),
+    'Pending'           => array('title' => 'Order Placed', 'desc' => 'Waiting for the shop to review and prepare your items.', 'icon' => icon('clock', '', 26)),
+    'Prepared'          => array('title' => 'Seller is Preparing Your Order', 'desc' => 'Your items are being packed and checked.', 'icon' => icon('package', '', 26)),
+    'Ready to Ship'     => array('title' => 'Ready for Courier Pick Up', 'desc' => 'Your package is sealed and waiting for courier dispatch.', 'icon' => icon('truck', '', 26)),
+    'Ready for Pick Up' => array('title' => 'Ready for Store Pick Up', 'desc' => 'You may now visit our store and present your Reference Number.', 'icon' => icon('store', '', 26)),
+    'Shipped'           => array('title' => 'Parcel Has Shipped', 'desc' => 'Your order is currently in transit with the courier.', 'icon' => icon('truck', '', 26)),
+    'Out for Delivery'  => array('title' => 'Out for Delivery', 'desc' => 'Rider is on the way to your delivery address today.', 'icon' => icon('truck', '', 26)),
+    'Delivered'         => array('title' => 'Parcel Delivered', 'desc' => 'Please inspect your items and click "Order Received" below.', 'icon' => icon('map-pin', '', 26)),
+    'Completed'         => array('title' => 'Order Completed', 'desc' => 'Thank you for shopping with Sportibai!', 'icon' => icon('check-circle', '', 26)),
+    'Cancelled'         => array('title' => 'Order Cancelled', 'desc' => 'This order was cancelled and inventory has been restored.', 'icon' => icon('x-circle', '', 26)),
 );
-$banner = $status_banners[$order['status']] ?? array('title' => $order['status'], 'desc' => '', 'icon' => 'ℹ️');
+$banner = $status_banners[$order['status']] ?? array('title' => $order['status'], 'desc' => '', 'icon' => icon('package', '', 26));
 ?>
 
 <!-- Status Banner -->
-<div class="order-status-banner reveal in" style="margin-bottom:1.75rem; padding:1.25rem 1.5rem; border-radius:var(--radius-xl); border:var(--hairline) solid var(--color-border); background:rgba(0, 74, 172, 0.15); display:flex; align-items:center; gap:1.25rem;">
-    <div style="font-size:2rem;"><?= $banner['icon'] ?></div>
+<div class="order-status-banner reveal in" style="margin-bottom:1.75rem; padding:1.25rem 1.5rem; border-radius:var(--radius-xl); border:1px solid rgba(255,255,255,0.1); background:rgba(10, 132, 255, 0.12); display:flex; align-items:center; gap:1.25rem;">
+    <div style="display:flex; align-items:center; justify-content:center; width:48px; height:48px; border-radius:12px; background:rgba(255,255,255,0.06); color:var(--color-accent-on-dark); flex-shrink:0;">
+        <?= $banner['icon'] ?>
+    </div>
     <div style="flex-grow:1;">
-        <h2 style="font-size:1.15rem; font-weight:700; margin:0; color:var(--color-fg);"><?= htmlspecialchars($banner['title']) ?></h2>
+        <h2 style="font-size:1.2rem; font-weight:700; margin:0; color:#ffffff; font-family:var(--font-display);"><?= htmlspecialchars($banner['title']) ?></h2>
         <?php if ($banner['desc']) { ?>
-            <p class="muted" style="margin:4px 0 0; font-size:var(--text-body-sm);"><?= htmlspecialchars($banner['desc']) ?></p>
+            <p class="muted" style="margin:4px 0 0; font-size:14.5px;"><?= htmlspecialchars($banner['desc']) ?></p>
         <?php } ?>
     </div>
-    <span class="status-badge" style="<?= status_badge_style($order['status']); ?> font-size:12px; padding:6px 14px;">
+    <span class="status-badge" style="<?= status_badge_style($order['status']); ?> font-size:13px; font-weight:800; padding:6px 16px;">
         <?= htmlspecialchars($order['status']) ?>
     </span>
 </div>
@@ -136,18 +147,20 @@ $banner = $status_banners[$order['status']] ?? array('title' => $order['status']
         <div>
             <div class="hero-eyebrow">[ ORDER DETAILS ]</div>
             <div style="display:flex; align-items:center; gap:10px; margin-top:6px;">
-                <h1 style="font-size:var(--text-display-m); margin:0;">
+                <h1 style="font-size:var(--text-display-m); margin:0; font-family:var(--font-mono); font-weight:800;">
                     <?= htmlspecialchars($ref) ?>
                 </h1>
-                <button type="button" class="btn ghost sm" onclick="navigator.clipboard.writeText('<?= htmlspecialchars($ref) ?>'); this.innerText='Copied!'; setTimeout(() => this.innerText='Copy Ref', 2000);" style="padding:4px 10px; font-size:10px;">
-                    Copy Ref
+                <button type="button" class="btn ghost sm" onclick="navigator.clipboard.writeText('<?= htmlspecialchars($ref) ?>'); this.innerHTML='<span style=\'color:var(--color-brand-green);\'>Copied!</span>'; setTimeout(() => this.innerHTML='<?= icon('copy', '', 13) ?> Copy Ref', 1500);" style="padding:5px 12px; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+                    <?= icon('copy', '', 13) ?>
+                    <span>Copy Ref</span>
                 </button>
             </div>
         </div>
         <div style="display:flex; gap:8px;">
             <?php if ($order['status'] !== 'Cancelled') { ?>
-                <button type="button" class="btn ghost sm" onclick="window.print()">
-                    🖨️ Print Receipt
+                <button type="button" class="btn ghost sm" onclick="window.print()" style="font-size:13px; font-weight:700; padding:8px 16px; display:inline-flex; align-items:center; gap:8px;">
+                    <?= icon('printer', '', 16) ?>
+                    <span>Print Receipt</span>
                 </button>
             <?php } ?>
         </div>
@@ -169,26 +182,35 @@ $banner = $status_banners[$order['status']] ?? array('title' => $order['status']
                         <div class="detail-item-thumb tile" style="--h:<?= tile_hue($item['item_id']) ?>; aspect-ratio:1; border-radius:var(--radius-md);"></div>
                     <?php } ?>
                     <div class="detail-item-info">
-                        <span style="font-weight:600;">
+                        <span style="font-weight:700; font-size:16.5px; color:#ffffff; font-family:var(--font-display);">
                             <?= htmlspecialchars($item['name']) ?>
                             <?php if (!empty($item['selected_size'])) { ?>
-                                <span class="badge" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); color:var(--color-fg); font-size:11px; padding:2px 7px; margin-left:6px; vertical-align:middle;">
+                                <span class="badge" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.22); color:var(--color-fg); font-size:12px; font-weight:700; padding:2px 8px; margin-left:6px; vertical-align:middle;">
                                     Size: <?= htmlspecialchars($item['selected_size']) ?>
                                 </span>
                             <?php } ?>
                         </span>
-                        <span class="muted" style="font-size:var(--text-body-sm);">
-                            <?= $item['quantity'] ?> × <?= peso($item['price']) ?>
+                        <span class="muted" style="font-size:14.5px; margin-top:2px;">
+                            <?= $item['quantity'] ?> × <strong style="color:#ffffff;"><?= peso($item['price']) ?></strong>
                         </span>
+                        <?php if ($order['status'] === 'Completed') { 
+                            $is_it_rev = isset($order_reviews[$item['item_id']]);
+                        ?>
+                            <div style="margin-top:6px;">
+                                <a href="item/detail.php?id=<?= $item['item_id'] ?>&order_id=<?= $order['order_id'] ?>#reviews" style="<?= $is_it_rev ? 'background:rgba(245,158,11,0.18); color:#f59e0b; border:1px solid rgba(245,158,11,0.4);' : 'background:rgba(245,158,11,0.28); color:#fbbf24; border:1px solid rgba(245,158,11,0.6); font-weight:700; box-shadow:0 0 10px rgba(245,158,11,0.2);' ?> font-size:12px; font-weight:700; padding:3px 10px; border-radius:6px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                                    <?= $is_it_rev ? icon('check', '', 13) . ' <span>Reviewed (Edit)</span>' : icon('star', '', 13) . ' <span>Review Item</span>' ?>
+                                </a>
+                            </div>
+                        <?php } ?>
                     </div>
-                    <span style="font-weight:700; color:var(--color-accent-on-dark);">
+                    <span style="font-weight:800; font-size:17px; color:var(--color-accent-on-dark); font-family:var(--font-display);">
                         <?= peso($item['price'] * $item['quantity']) ?>
                     </span>
                 </div>
                 <?php } ?>
                 <div class="detail-total-row">
-                    <span class="muted" style="font-size:var(--text-label); letter-spacing:var(--tracking-label); text-transform:uppercase;">Order Total</span>
-                    <span style="font-size:1.5rem; font-weight:800; color:var(--color-accent-on-dark);"><?= peso($order['total']) ?></span>
+                    <span class="muted" style="font-size:13px; font-weight:800; letter-spacing:var(--tracking-label); text-transform:uppercase;">Order Total</span>
+                    <span style="font-size:1.75rem; font-weight:800; color:var(--color-accent-on-dark); font-family:var(--font-display);"><?= peso($order['total']) ?></span>
                 </div>
             </div>
 
@@ -200,37 +222,47 @@ $banner = $status_banners[$order['status']] ?? array('title' => $order['status']
                 <div class="detail-info-list">
                     <div class="detail-info-row">
                         <span class="muted detail-info-label">Name</span>
-                        <span><?= htmlspecialchars($order['snapshot_name'] ?? ($order['first_name'] . ' ' . $order['last_name'])) ?></span>
+                        <span style="font-weight:700; font-size:15px; color:#fff;"><?= htmlspecialchars($order['snapshot_name'] ?? ($order['first_name'] . ' ' . $order['last_name'])) ?></span>
                     </div>
                     <div class="detail-info-row">
                         <span class="muted detail-info-label">Contact</span>
-                        <span><?= htmlspecialchars($order['contact_number']) ?></span>
+                        <span style="font-weight:600; font-family:var(--font-mono); font-size:15px; color:#fff;"><?= htmlspecialchars($order['contact_number']) ?></span>
                     </div>
                     <?php if ($is_delivery && $order['delivery_address']) { ?>
                     <div class="detail-info-row">
                         <span class="muted detail-info-label">Address</span>
-                        <span><?= nl2br(htmlspecialchars($order['delivery_address'])) ?></span>
+                        <span style="font-size:15px; color:#e2e8f0; line-height:1.5;"><?= nl2br(htmlspecialchars($order['delivery_address'])) ?></span>
                     </div>
                     <?php } ?>
                     <div class="detail-info-row">
                         <span class="muted detail-info-label">Payment</span>
-                        <span>Cash on Delivery (COD)</span>
+                        <span style="font-weight:600; font-size:15px; color:#fff;">Cash on Delivery (COD)</span>
                     </div>
                     <div class="detail-info-row">
                         <span class="muted detail-info-label">Date Placed</span>
-                        <span><?= date('M d, Y · g:i A', strtotime($order['date_ordered'])) ?></span>
+                        <span style="font-size:15px; color:#e2e8f0;"><?= date('M d, Y · g:i A', strtotime($order['date_ordered'])) ?></span>
                     </div>
                 </div>
             </div>
 
             <!-- CTA Actions -->
-            <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
-                <a href="orders.php" class="btn ghost sm">← Back to Orders</a>
-                <?php if ($order['status'] === 'Completed') { 
-                    $first_it_id = $items[0]['item_id'] ?? 0;
+            <div style="display:flex; gap:.75rem; flex-wrap:wrap; align-items:center;">
+                <a href="orders.php" class="btn ghost sm" style="font-size:13px; font-weight:700; padding:8px 16px; display:inline-flex; align-items:center; gap:6px;">
+                    <?= icon('arrow-left', '', 15) ?>
+                    <span>Back to Orders</span>
+                </a>
+                <?php if ($order['status'] === 'Completed' && !empty($items)) { 
+                    $unreviewed = array();
+                    foreach ($items as $it) {
+                        if (!isset($order_reviews[$it['item_id']])) {
+                            $unreviewed[] = $it;
+                        }
+                    }
+                    $all_reviewed = (count($unreviewed) === 0);
+                    $target_it = $all_reviewed ? $items[0] : $unreviewed[0];
                 ?>
-                    <a href="item/detail.php?id=<?= $first_it_id ?>#reviews" class="btn sm" style="background:rgba(245,158,11,0.25); color:#f59e0b; border:1px solid rgba(245,158,11,0.5); font-size:11px; box-shadow:0 0 10px rgba(245,158,11,0.25);">
-                        ⭐ Review Gear
+                    <a href="item/detail.php?id=<?= $target_it['item_id'] ?>&order_id=<?= $order['order_id'] ?>#reviews" class="btn sm" style="<?= $all_reviewed ? 'background:rgba(245,158,11,0.2); color:#f59e0b; border:1px solid rgba(245,158,11,0.45);' : 'background:rgba(245,158,11,0.28); color:#fbbf24; border:1px solid rgba(245,158,11,0.65); font-weight:700; box-shadow:0 0 10px rgba(245,158,11,0.3);' ?> font-size:13px; font-weight:700; padding:8px 18px; display:inline-flex; align-items:center; gap:6px;">
+                        <?= $all_reviewed ? icon('check', '', 14) . ' <span>Reviewed (Edit)</span>' : icon('star', '', 14) . ' <span>Review Gear</span>' ?>
                     </a>
                 <?php } ?>
                 <?php if ($can_receive) { ?>
@@ -239,8 +271,9 @@ $banner = $status_banners[$order['status']] ?? array('title' => $order['status']
                         <input type="hidden" name="order_id" value="<?= $order['order_id'] ?>">
                         <button class="btn sm" type="submit"
                             onclick="return confirm('Confirm you received this order?')"
-                            style="background:rgba(81,175,67,0.85);box-shadow:0 2px 14px rgba(81,175,67,0.3);">
-                            ✓ Order Received
+                            style="background:rgba(81,175,67,0.85); box-shadow:0 2px 14px rgba(81,175,67,0.3); font-size:13px; font-weight:700; padding:8px 18px; display:inline-flex; align-items:center; gap:6px;">
+                            <?= icon('check-circle', '', 16) ?>
+                            <span>Order Received</span>
                         </button>
                     </form>
                 <?php } elseif ($order['status'] === 'Shipped' || $order['status'] === 'Out for Delivery' || $order['status'] === 'Ready for Pick Up') { ?>

@@ -92,7 +92,13 @@ if (isset($_POST['update_status'])) {
         mysqli_rollback($conn);
         $_SESSION['message'] = $e->getMessage();
     }
-    header('Location: orders.php');
+    $ret_tab = isset($_POST['tab']) ? trim($_POST['tab']) : '';
+    $ret_q   = isset($_POST['q']) ? trim($_POST['q']) : '';
+    $query_parts = array();
+    if ($ret_tab !== '' && $ret_tab !== 'all') $query_parts[] = 'tab=' . urlencode($ret_tab);
+    if ($ret_q !== '') $query_parts[] = 'q=' . urlencode($ret_q);
+    $dest = 'orders.php' . (!empty($query_parts) ? ('?' . implode('&', $query_parts)) : '');
+    header('Location: ' . $dest);
     exit;
 }
 
@@ -211,14 +217,16 @@ require '../includes/header.php';
                 <input type="hidden" name="tab" value="<?= htmlspecialchars($active_tab) ?>">
             <?php } ?>
             <div style="position:relative; display:flex; align-items:center;">
-                <input type="search" name="q" class="search" style="min-width:17rem; padding:0.65rem 1rem 0.65rem 2.2rem; border-radius:10px;"
+                <input type="search" name="q" class="search" style="min-width:18rem; padding:0.75rem 1rem 0.75rem 2.6rem; border-radius:12px; font-size:14.5px;"
                     placeholder="Search name, ref #, phone…"
                     value="<?= htmlspecialchars($search) ?>">
-                <span style="position:absolute; left:12px; opacity:0.5; pointer-events:none; font-size:13px;">🔍</span>
+                <span style="position:absolute; left:14px; opacity:0.65; pointer-events:none; display:flex; align-items:center;">
+                    <?= icon('search', '', 17) ?>
+                </span>
             </div>
-            <button class="btn sm" type="submit" style="padding:0.65rem 1.25rem; border-radius:10px;">Search</button>
+            <button class="btn sm" type="submit" style="padding:0.75rem 1.4rem; border-radius:12px; font-size:13.5px; font-weight:700;">Search</button>
             <?php if ($search !== '') { ?>
-                <a class="btn ghost sm" href="orders.php?tab=<?= urlencode($active_tab) ?>" style="border-radius:10px;">Clear</a>
+                <a class="btn ghost sm" href="orders.php?tab=<?= urlencode($active_tab) ?>" style="border-radius:12px; padding:0.75rem 1.1rem; font-size:13.5px;">Clear</a>
             <?php } ?>
         </form>
     </div>
@@ -226,30 +234,31 @@ require '../includes/header.php';
     <?php require '../includes/alert.php'; ?>
 
     <!-- Pipeline KPI Metrics Ribbon -->
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:1rem; margin-bottom:1.75rem;">
-        <div class="card in" style="padding:1.25rem; border-radius:14px; background:rgba(22, 24, 29, 0.7); border:1px solid rgba(255,255,255,0.08);">
-            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted);">Total Pipeline</div>
-            <div style="font-size:1.75rem; font-weight:800; color:#fff; margin-top:4px;"><?= $total_count ?></div>
-            <div class="muted" style="font-size:11px; margin-top:2px;">All customer transactions</div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:1.25rem; margin-bottom:2rem;">
+        <div class="card in" style="padding:1.4rem; border-radius:16px; background:rgba(22, 24, 29, 0.75); border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted);">Total Pipeline</div>
+            <div style="font-size:2rem; font-weight:900; font-family:var(--font-display); color:#fff; margin-top:4px;"><?= $total_count ?></div>
+            <div class="muted" style="font-size:13px; margin-top:3px;">All customer transactions</div>
         </div>
-        <div class="card in" style="padding:1.25rem; border-radius:14px; background:rgba(22, 24, 29, 0.7); border:1px solid <?= $kpi_pending > 0 ? 'rgba(224, 35, 28, 0.4)' : 'rgba(255,255,255,0.08)' ?>;">
-            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:<?= $kpi_pending > 0 ? '#ff6e64' : 'var(--color-muted)' ?>;">
-                <?= $kpi_pending > 0 ? '⚠️ Pending Action' : 'Pending Action' ?>
+        <div class="card in" style="padding:1.4rem; border-radius:16px; background:rgba(22, 24, 29, 0.75); border:1px solid <?= $kpi_pending > 0 ? 'rgba(224, 35, 28, 0.45)' : 'rgba(255,255,255,0.08)' ?>;">
+            <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.8px; color:<?= $kpi_pending > 0 ? '#ff6e64' : 'var(--color-muted)' ?>; display:flex; align-items:center; gap:6px;">
+                <?php if ($kpi_pending > 0) { echo icon('alert-triangle', '', 15); } ?>
+                <span>Pending Action</span>
             </div>
-            <div style="font-size:1.75rem; font-weight:800; color:<?= $kpi_pending > 0 ? '#ff6e64' : '#fff' ?>; margin-top:4px;">
+            <div style="font-size:2rem; font-weight:900; font-family:var(--font-display); color:<?= $kpi_pending > 0 ? '#ff6e64' : '#fff' ?>; margin-top:4px;">
                 <?= $kpi_pending ?>
             </div>
-            <div class="muted" style="font-size:11px; margin-top:2px;">Orders waiting for confirmation</div>
+            <div class="muted" style="font-size:13px; margin-top:3px;">Orders waiting for confirmation</div>
         </div>
-        <div class="card in" style="padding:1.25rem; border-radius:14px; background:rgba(22, 24, 29, 0.7); border:1px solid rgba(255,255,255,0.08);">
-            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted);">In Fulfillment</div>
-            <div style="font-size:1.75rem; font-weight:800; color:var(--color-accent-on-dark); margin-top:4px;"><?= $kpi_transit ?></div>
-            <div class="muted" style="font-size:11px; margin-top:2px;">Prepared / Out for delivery / Shipped</div>
+        <div class="card in" style="padding:1.4rem; border-radius:16px; background:rgba(22, 24, 29, 0.75); border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted);">In Fulfillment</div>
+            <div style="font-size:2rem; font-weight:900; font-family:var(--font-display); color:var(--color-accent-on-dark); margin-top:4px;"><?= $kpi_transit ?></div>
+            <div class="muted" style="font-size:13px; margin-top:3px;">Prepared / Out for delivery / Shipped</div>
         </div>
-        <div class="card in" style="padding:1.25rem; border-radius:14px; background:rgba(22, 24, 29, 0.7); border:1px solid rgba(255,255,255,0.08);">
-            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted);">Delivered Volume</div>
-            <div style="font-size:1.75rem; font-weight:800; color:var(--color-brand-green); margin-top:4px;"><?= peso($kpi_completed_val) ?></div>
-            <div class="muted" style="font-size:11px; margin-top:2px;"><?= $kpi_completed ?> orders completed</div>
+        <div class="card in" style="padding:1.4rem; border-radius:16px; background:rgba(22, 24, 29, 0.75); border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted);">Delivered Volume</div>
+            <div style="font-size:2rem; font-weight:900; font-family:var(--font-display); color:var(--color-brand-green); margin-top:4px;"><?= peso($kpi_completed_val) ?></div>
+            <div class="muted" style="font-size:13px; margin-top:3px;"><?= $kpi_completed ?> orders completed</div>
         </div>
     </div>
 
@@ -274,10 +283,10 @@ require '../includes/header.php';
             $is_alert_tab = ($key === 'Pending' && $count > 0);
         ?>
             <a href="orders.php?tab=<?= urlencode($key) ?><?= $search ? '&q=' . urlencode($search) : '' ?>"
-               class="<?= $cls ?>" style="font-size:12px; padding:7px 14px; border-radius:10px;">
+               class="<?= $cls ?>" style="font-size:14px; padding:10px 18px; border-radius:var(--radius-pill); font-weight:700;">
                 <?= htmlspecialchars($label) ?>
                 <?php if ($count > 0) { ?>
-                    <span class="tab-badge" style="<?= $is_alert_tab ? 'background:var(--color-brand-red); color:#fff;' : '' ?>">
+                    <span class="tab-badge" style="<?= $is_alert_tab ? 'background:var(--color-brand-red); color:#fff; box-shadow:0 0 10px rgba(224,35,28,0.5);' : '' ?> font-size:12px; min-width:22px; height:22px;">
                         <?= $count ?>
                     </span>
                 <?php } ?>
@@ -287,8 +296,10 @@ require '../includes/header.php';
 
     <!-- Orders Feed -->
     <?php if (count($orders) === 0) { ?>
-        <div class="card in" style="text-align:center; padding:4rem 2rem; border-radius:16px;">
-            <div style="font-size:2.5rem; margin-bottom:0.75rem;">📦</div>
+        <div class="card in" style="text-align:center; padding:4.5rem 2rem; border-radius:18px;">
+            <div style="margin-bottom:1rem; color:var(--color-fg-muted); display:flex; justify-content:center;">
+                <?= icon('package', '', 52) ?>
+            </div>
             <h3 style="font-size:1.15rem; font-weight:700; color:#fff; margin-bottom:4px;">No Orders Found</h3>
             <p class="muted" style="font-size:13px; margin:0;">
                 <?= $search ? 'No orders matching "' . htmlspecialchars($search) . '".' : 'There are no customer orders in this category right now.' ?>
@@ -313,56 +324,58 @@ require '../includes/header.php';
             $note_text = trim($parts[1]);
         }
     ?>
-        <div class="order-card reveal in" style="padding:1.5rem; border-radius:16px; background:rgba(22, 24, 29, 0.7); border:1px solid rgba(255, 255, 255, 0.08); box-shadow:0 8px 24px rgba(0,0,0,0.25);">
+        <div class="order-card reveal in" style="padding:1.5rem; border-radius:18px; background:rgba(22, 24, 29, 0.7); border:1px solid rgba(255, 255, 255, 0.08); box-shadow:0 8px 24px rgba(0,0,0,0.25);">
             <!-- Card Header: Reference, Badges, Total & Date -->
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; padding-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.06);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; padding-bottom:1.15rem; border-bottom:1px solid rgba(255,255,255,0.08);">
                 <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                     <button type="button" onclick="copyRef('<?= htmlspecialchars($ref) ?>', this)" title="Click to copy order reference"
-                        style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:#fff; font-family:var(--font-mono); font-size:14px; font-weight:800; padding:4px 10px; border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; letter-spacing:0.5px;">
+                        style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:#fff; font-family:var(--font-mono); font-size:16px; font-weight:800; padding:6px 14px; border-radius:10px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; letter-spacing:0.5px; transition:all 0.18s;">
                         <span>#<?= htmlspecialchars($ref) ?></span>
-                        <span style="font-size:11px; opacity:0.6;">📋</span>
+                        <span class="copy-icon-slot" style="color:var(--color-fg-muted); display:flex; align-items:center;">
+                            <?= icon('copy', '', 16) ?>
+                        </span>
                     </button>
-                    <span class="status-badge" style="<?= status_badge_style($o['status']) ?> font-size:11px; padding:3px 10px; border-radius:8px;">
+                    <span class="status-badge" style="<?= status_badge_style($o['status']) ?> font-size:13px; font-weight:800; padding:5px 14px; border-radius:var(--radius-pill);">
                         ● <?= htmlspecialchars($o['status']) ?>
                     </span>
-                    <span style="font-size:11px; font-weight:700; padding:3px 9px; border-radius:6px; background:rgba(255,255,255,0.06); color:var(--color-fg-secondary); text-transform:uppercase; letter-spacing:0.5px;">
-                        <?= $is_delivery ? '🚚 Delivery' : '🏬 Store Pick Up' ?>
+                    <span style="font-size:12.5px; font-weight:700; padding:5px 12px; border-radius:8px; background:rgba(255,255,255,0.07); color:var(--color-fg); display:inline-flex; align-items:center; gap:6px; letter-spacing:0.3px;">
+                        <?= $is_delivery ? icon('truck', '', 16) . ' Delivery' : icon('store', '', 16) . ' Store Pick Up' ?>
                     </span>
                 </div>
                 <div style="text-align:right;">
-                    <div style="font-size:1.25rem; font-weight:800; color:var(--color-brand-green); letter-spacing:-0.01em;">
+                    <div style="font-size:1.65rem; font-weight:800; color:var(--color-brand-green); font-family:var(--font-display); letter-spacing:-0.01em;">
                         <?= peso($o['total']) ?>
                     </div>
-                    <div class="muted" style="font-size:11px; margin-top:2px;">
+                    <div class="muted" style="font-size:13px; margin-top:2px;">
                         <?= date('M d, Y • g:i A', strtotime($o['date_ordered'])) ?>
                     </div>
                 </div>
             </div>
 
             <!-- Customer & Shipping Information Strip -->
-            <div style="display:flex; flex-direction:column; gap:8px; margin:1rem 0;">
-                <div style="display:flex; flex-wrap:wrap; gap:1.25rem; align-items:center; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.04); border-radius:10px; padding:10px 14px; font-size:12px;">
-                    <div style="display:flex; align-items:center; gap:6px;">
-                        <span style="opacity:0.6;">👤</span>
-                        <strong style="color:#fff;"><?= htmlspecialchars($name ?: 'Customer') ?></strong>
+            <div style="display:flex; flex-direction:column; gap:10px; margin:1.25rem 0;">
+                <div style="display:flex; flex-wrap:wrap; gap:1.5rem; align-items:center; background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.07); border-radius:12px; padding:12px 18px; font-size:14.5px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="color:var(--color-accent-on-dark); display:flex; align-items:center;"><?= icon('user', '', 18) ?></span>
+                        <strong style="color:#ffffff; font-size:15px;"><?= htmlspecialchars($name ?: 'Customer') ?></strong>
                     </div>
-                    <div style="display:flex; align-items:center; gap:6px;">
-                        <span style="opacity:0.6;">📞</span>
-                        <a href="tel:<?= htmlspecialchars($o['contact_number']) ?>" style="color:var(--color-fg-secondary); text-decoration:none;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="color:var(--color-accent-on-dark); display:flex; align-items:center;"><?= icon('phone', '', 17) ?></span>
+                        <a href="tel:<?= htmlspecialchars($o['contact_number']) ?>" style="color:#ffffff; text-decoration:none; font-weight:600; font-family:var(--font-mono); font-size:14.5px;">
                             <?= htmlspecialchars($o['contact_number'] ?: 'No phone provided') ?>
                         </a>
                     </div>
                     <?php if ($is_delivery && !empty($addr_text)) { ?>
-                        <div style="display:flex; align-items:center; gap:6px; flex-grow:1;">
-                            <span style="opacity:0.6;">📍</span>
-                            <span style="color:var(--color-fg-secondary);"><?= htmlspecialchars($addr_text) ?></span>
+                        <div style="display:flex; align-items:center; gap:8px; flex-grow:1;">
+                            <span style="color:var(--color-accent-on-dark); display:flex; align-items:center;"><?= icon('map-pin', '', 18) ?></span>
+                            <span style="color:#e2e8f0; font-size:14.5px;"><?= htmlspecialchars($addr_text) ?></span>
                         </div>
                     <?php } ?>
                 </div>
 
                 <?php if (!empty($note_text)) { ?>
-                    <div style="display:flex; align-items:center; gap:8px; background:rgba(245, 158, 11, 0.08); border:1px solid rgba(245, 158, 11, 0.25); border-radius:8px; padding:6px 12px; font-size:12px; color:#fbbf24;">
-                        <span style="font-size:13px;">💬</span>
+                    <div style="display:flex; align-items:center; gap:10px; background:rgba(245, 158, 11, 0.12); border:1px solid rgba(245, 158, 11, 0.35); border-radius:10px; padding:10px 16px; font-size:14px; color:#fbbf24; font-weight:600;">
+                        <span style="display:flex; align-items:center; flex-shrink:0;"><?= icon('message-square', '', 18) ?></span>
                         <span><strong>Delivery Note:</strong> <?= htmlspecialchars($note_text) ?></span>
                     </div>
                 <?php } ?>
@@ -370,29 +383,31 @@ require '../includes/header.php';
 
             <!-- Items with Visual Thumbnails -->
             <?php if (isset($order_items[$o['order_id']])) { ?>
-            <div style="margin:1rem 0;">
-                <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted); margin-bottom:8px;">
-                    Order Package (<?= count($order_items[$o['order_id']]) ?> items)
+            <div style="margin:1.25rem 0;">
+                <div style="font-size:12.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-fg-secondary); margin-bottom:10px;">
+                    Order Package (<?= count($order_items[$o['order_id']]) ?> <?= count($order_items[$o['order_id']]) === 1 ? 'item' : 'items' ?>)
                 </div>
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:10px;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:12px;">
                     <?php foreach ($order_items[$o['order_id']] as $oi) { 
                         $has_img = !empty($oi['image']) && file_exists(__DIR__ . '/../images/uploads/' . $oi['image']);
                         $img_src = $has_img ? '../images/uploads/' . htmlspecialchars($oi['image']) : '../images/placeholder.svg';
                     ?>
-                        <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); padding:10px 14px; border-radius:10px;">
-                            <img src="<?= $img_src ?>" alt="" style="width:46px; height:46px; object-fit:cover; border-radius:8px; flex-shrink:0; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);">
+                        <div style="display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.08); padding:12px 16px; border-radius:12px;">
+                            <img src="<?= $img_src ?>" alt="" style="width:64px; height:64px; object-fit:cover; border-radius:10px; flex-shrink:0; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12);">
                             <div style="flex-grow:1; min-width:0;">
-                                <div style="font-size:13px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                <div style="font-size:16.5px; font-weight:700; color:#ffffff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:var(--font-display);">
                                     <?= htmlspecialchars($oi['name']) ?>
                                 </div>
-                                <div style="display:flex; align-items:center; gap:6px; margin-top:3px; font-size:11px;">
-                                    <span style="color:var(--color-accent-on-dark); font-weight:700;"><?= (int)$oi['quantity'] ?>x</span>
+                                <div style="display:flex; align-items:center; gap:8px; margin-top:5px; font-size:13.5px;">
+                                    <span style="background:rgba(10,132,255,0.18); color:#64b5f6; border:1px solid rgba(10,132,255,0.4); padding:2px 8px; border-radius:6px; font-weight:800; font-size:13.5px;">
+                                        <?= (int)$oi['quantity'] ?>x
+                                    </span>
                                     <?php if (!empty($oi['selected_size'])) { ?>
-                                        <span style="background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700; color:#fff;">
+                                        <span style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); padding:2px 8px; border-radius:6px; font-size:12.5px; font-weight:700; color:#ffffff;">
                                             Size: <?= htmlspecialchars($oi['selected_size']) ?>
                                         </span>
                                     <?php } ?>
-                                    <span class="muted"><?= peso($oi['price']) ?> each</span>
+                                    <span class="muted" style="font-size:13.5px;"><?= peso($oi['price']) ?> each</span>
                                 </div>
                             </div>
                         </div>
@@ -402,19 +417,24 @@ require '../includes/header.php';
             <?php } ?>
 
             <!-- Status Update & Receipt Actions Footer -->
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.06);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding-top:1.15rem; border-top:1px solid rgba(255,255,255,0.08);">
                 <div>
-                    <a href="../actions/download_receipt.php?order_id=<?= $o['order_id'] ?>" target="_blank" class="btn ghost sm" style="font-size:11px; padding:6px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;">
-                        📄 View PDF Receipt
+                    <a href="../actions/download_receipt.php?order_id=<?= $o['order_id'] ?>" target="_blank" class="btn ghost sm" style="font-size:13px; font-weight:700; padding:8px 16px; border-radius:10px; display:inline-flex; align-items:center; gap:8px;">
+                        <?= icon('file-text', '', 17) ?>
+                        <span>View PDF Receipt</span>
                     </a>
                 </div>
                 <div>
                     <?php if (count($allowed) > 0) { ?>
-                        <form method="POST" action="orders.php" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:0;">
+                        <form method="POST" action="orders.php" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0;">
                             <?= csrf_field() ?>
                             <input type="hidden" name="order_id" value="<?= $o['order_id'] ?>">
-                            <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--color-fg-secondary); letter-spacing:0.5px;">Transition to:</span>
-                            <select name="new_status" class="search" style="min-width:11rem; padding:0.45rem 0.8rem; font-size:12px; font-weight:600; border-radius:8px;">
+                            <input type="hidden" name="tab" value="<?= htmlspecialchars($active_tab) ?>">
+                            <?php if ($search !== '') { ?>
+                                <input type="hidden" name="q" value="<?= htmlspecialchars($search) ?>">
+                            <?php } ?>
+                            <span style="font-size:12px; font-weight:800; text-transform:uppercase; color:var(--color-fg-secondary); letter-spacing:0.6px;">Transition to:</span>
+                            <select name="new_status" class="search" style="min-width:12rem; padding:0.6rem 0.9rem; font-size:13.5px; font-weight:700; border-radius:10px;">
                                 <?php foreach ($allowed as $status) { ?>
                                     <option value="<?= htmlspecialchars($status) ?>"
                                         <?= $status === 'Cancelled' ? 'style="color:#ff9f96;"' : '' ?>>
@@ -422,17 +442,20 @@ require '../includes/header.php';
                                     </option>
                                 <?php } ?>
                             </select>
-                            <button class="btn sm" type="submit" name="update_status" style="font-size:11px; padding:0.48rem 1.1rem; border-radius:8px; font-weight:700;">
-                                Apply Status &rarr;
+                            <button class="btn sm" type="submit" name="update_status" style="font-size:13px; font-weight:800; padding:0.6rem 1.3rem; border-radius:10px; display:inline-flex; align-items:center; gap:6px;">
+                                <span>Apply Status</span>
+                                <?= icon('arrow-right', '', 15) ?>
                             </button>
                         </form>
                     <?php } elseif ($o['status'] === 'Completed') { ?>
-                        <span style="font-size:12px; color:var(--color-brand-green); font-weight:700; display:inline-flex; align-items:center; gap:6px; background:rgba(81,175,67,0.1); border:1px solid rgba(81,175,67,0.25); padding:4px 12px; border-radius:8px;">
-                            ✓ Order Fulfilled &amp; Completed
+                        <span style="font-size:13.5px; color:var(--color-brand-green); font-weight:700; display:inline-flex; align-items:center; gap:8px; background:rgba(81,175,67,0.12); border:1px solid rgba(81,175,67,0.3); padding:6px 14px; border-radius:10px;">
+                            <?= icon('check-circle', '', 18) ?>
+                            <span>Order Fulfilled &amp; Completed</span>
                         </span>
                     <?php } elseif ($o['status'] === 'Cancelled') { ?>
-                        <span style="font-size:12px; color:#ff6b6b; font-weight:600; display:inline-flex; align-items:center; gap:6px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); padding:4px 12px; border-radius:8px;">
-                            ✕ Order Cancelled &amp; Inventory Restocked
+                        <span style="font-size:13.5px; color:#ff6b6b; font-weight:700; display:inline-flex; align-items:center; gap:8px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); padding:6px 14px; border-radius:10px;">
+                            <?= icon('x-circle', '', 18) ?>
+                            <span>Order Cancelled &amp; Inventory Restocked</span>
                         </span>
                     <?php } ?>
                 </div>
@@ -446,8 +469,12 @@ function copyRef(ref, btn) {
     if (navigator.clipboard) {
         navigator.clipboard.writeText(ref).then(function() {
             const orig = btn.innerHTML;
-            btn.innerHTML = '<span>Copied!</span> <span style="font-size:11px; color:var(--color-brand-green);">✓</span>';
-            setTimeout(function() { btn.innerHTML = orig; }, 1500);
+            btn.innerHTML = '<span style="color:var(--color-brand-green);">Copied!</span> <span style="color:var(--color-brand-green); display:flex; align-items:center;"><?= icon('check', '', 16) ?></span>';
+            btn.style.borderColor = 'rgba(48,209,88,0.5)';
+            setTimeout(function() { 
+                btn.innerHTML = orig; 
+                btn.style.borderColor = '';
+            }, 1500);
         });
     }
 }

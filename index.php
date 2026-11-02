@@ -50,16 +50,16 @@ if ($conn != null) {
     }
 }
 
-// ── Category icon map (emoji fallback) ───────────────────────────────────────
+// ── Category icon map (SVG icon keys) ───────────────────────────────────────
 $cat_icons = array(
-    'Balls'      => '⚽',
-    'Footwear'   => '👟',
-    'Apparel'    => '👕',
-    'Weights'    => '🏋️',
-    'Equipment'  => '🏅',
-    'Accessories'=> '🎽',
-    'Rackets'    => '🏸',
-    'Protection' => '🥊',
+    'Balls'      => 'layers',
+    'Footwear'   => 'zap',
+    'Apparel'    => 'tag',
+    'Weights'    => 'award',
+    'Equipment'  => 'package',
+    'Accessories'=> 'shield',
+    'Rackets'    => 'zap',
+    'Protection' => 'shield',
 );
 // Category gradient map (hue)
 $cat_hues = array(200, 260, 40, 160, 310, 20, 180, 340);
@@ -82,25 +82,25 @@ $cat_hues = array(200, 260, 40, 160, 310, 20, 180, 340);
                 who show up.
             </p>
             <div class="home-hero-ctas">
-                <a href="shop.php" class="btn" style="padding:0.9rem 2.25rem; font-size:12px;">
+                <a href="shop.php" class="btn" style="padding:1.05rem 2.5rem; font-size:15px; font-weight:800; box-shadow:0 0 24px rgba(10,132,255,0.4);">
                     Shop Now →
                 </a>
                 <?php if (!isset($_SESSION['user_id'])) { ?>
-                    <a href="auth/register.php" class="btn ghost" style="padding:0.9rem 1.75rem; font-size:12px;">
+                    <a href="auth/register.php" class="btn ghost" style="padding:1.05rem 2.2rem; font-size:15px; font-weight:700;">
                         Create Account
                     </a>
                 <?php } else { ?>
-                    <a href="orders.php" class="btn ghost" style="padding:0.9rem 1.75rem; font-size:12px;">
+                    <a href="orders.php" class="btn ghost" style="padding:1.05rem 2.2rem; font-size:15px; font-weight:700;">
                         My Orders
                     </a>
                 <?php } ?>
             </div>
 
             <!-- Quiz 3: Homepage Search Feature -->
-            <form action="shop.php" method="GET" class="hero-search-box" style="margin-top:1.75rem; max-width:480px; position:relative; display:flex; align-items:center; background:rgba(20,24,33,0.85); border:1px solid rgba(255,255,255,0.12); border-radius:9999px; padding:4px 6px 4px 18px; backdrop-filter:blur(12px); box-shadow:0 8px 30px rgba(0,0,0,0.45); transition:border-color 0.2s, box-shadow 0.2s;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.6; flex-shrink:0; margin-right:8px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <input type="text" name="q" placeholder="Search gear, shoes, balls, brands..." autocomplete="off" style="flex:1; background:transparent; border:none; outline:none; color:#f3f4f6; font-size:13px; font-weight:500; font-family:inherit; padding:8px 4px;">
-                <button type="submit" class="btn" style="padding:0.65rem 1.4rem; font-size:11px; letter-spacing:0.04em; border-radius:9999px; flex-shrink:0; text-transform:uppercase;">
+            <form action="shop.php" method="GET" class="hero-search-box" style="margin-top:2rem; max-width:540px; position:relative; display:flex; align-items:center; background:rgba(20,24,33,0.85); border:1px solid rgba(255,255,255,0.14); border-radius:9999px; padding:6px 8px 6px 20px; backdrop-filter:blur(14px); box-shadow:0 12px 35px rgba(0,0,0,0.5); transition:border-color 0.2s, box-shadow 0.2s;">
+                <span style="color:var(--color-fg-muted); display:flex; align-items:center; margin-right:8px;"><?= icon('search', '', 20) ?></span>
+                <input type="text" name="q" placeholder="Search gear, shoes, balls, brands..." autocomplete="off" style="flex:1; background:transparent; border:none; outline:none; color:#f3f4f6; font-size:15px; font-weight:600; font-family:inherit; padding:10px 6px;">
+                <button type="submit" class="btn" style="padding:0.75rem 1.6rem; font-size:13px; font-weight:800; letter-spacing:0.04em; border-radius:9999px; flex-shrink:0; text-transform:uppercase;">
                     Search
                 </button>
             </form>
@@ -109,8 +109,8 @@ $cat_hues = array(200, 260, 40, 160, 310, 20, 180, 340);
             <div class="spotibai-3d-wrap">
                 <div class="spotibai-3d-glow-bg"></div>
                 <div id="spotibai-3d-container"></div>
-                <div id="spotibai-3d-loader" class="spotibai-3d-loader">
-                    <span style="font-size:1.75rem;">⚙️</span>
+                <div id="spotibai-3d-loader" class="spotibai-3d-loader" style="font-size:14px; font-weight:600;">
+                    <span style="color:var(--color-brand-red); display:inline-flex; align-items:center;"><?= icon('loader', '', 24) ?></span>
                     <span>Loading 3D Spotibai Core…</span>
                 </div>
             </div>
@@ -191,7 +191,7 @@ $highlight_posters = array(
                             <span class="highlight-poster-badge-dot"></span>
                             <?= $hp['badge'] ?>
                         </span>
-                        <span style="font-size:18px; opacity:0.75; transform:rotate(-45deg); display:inline-block;">➜</span>
+                        <span style="opacity:0.85; display:inline-flex; align-items:center;"><?= icon('arrow-up-right', '', 20) ?></span>
                     </div>
                     <div class="highlight-poster-bottom">
                         <h3 class="highlight-poster-title"><?= $hp['title'] ?></h3>
@@ -211,7 +211,7 @@ $highlight_posters = array(
                             <span class="highlight-poster-badge-dot"></span>
                             <?= $hp['badge'] ?>
                         </span>
-                        <span style="font-size:18px; opacity:0.75; transform:rotate(-45deg); display:inline-block;">➜</span>
+                        <span style="opacity:0.85; display:inline-flex; align-items:center;"><?= icon('arrow-up-right', '', 20) ?></span>
                     </div>
                     <div class="highlight-poster-bottom">
                         <h3 class="highlight-poster-title"><?= $hp['title'] ?></h3>
@@ -247,7 +247,7 @@ $highlight_posters = array(
                     <span class="brand-tag"><?= htmlspecialchars($item['brand'] !== '' ? $item['brand'] : $item['category']) ?></span>
                     <h2><?= htmlspecialchars($item['name']) ?></h2>
                     <?php if (!empty($item['description'])) { ?>
-                        <p class="muted" style="font-size:13px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
+                        <p class="muted" style="font-size:14px; line-height:1.6; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
                             <?= htmlspecialchars($item['description']) ?>
                         </p>
                     <?php } ?>
@@ -259,10 +259,10 @@ $highlight_posters = array(
                 <div class="row">
                     <span class="price"><?= peso($item['price']) ?></span>
                     <?php if ($is_admin) { ?>
-                        <span class="muted" style="font-size:11px; text-transform:uppercase;">Admin view</span>
+                        <span class="muted" style="font-size:12.5px; font-weight:700; text-transform:uppercase;">Admin view</span>
                     <?php } elseif ($item['stock'] > 0) { ?>
                         <?php if ($has_item_sizes) { ?>
-                            <a class="btn sm" href="item/detail.php?id=<?= $item['item_id'] ?>">
+                            <a class="btn sm" href="item/detail.php?id=<?= $item['item_id'] ?>" style="font-size:13.5px; font-weight:700; padding:0.65rem 1.35rem;">
                                 Select Size →
                             </a>
                         <?php } else { ?>
@@ -270,11 +270,11 @@ $highlight_posters = array(
                                 <input type="hidden" name="action" value="add">
                                 <input type="hidden" name="item_id" value="<?= $item['item_id'] ?>">
                                 <input type="hidden" name="return_url" value="index.php#item-<?= $item['item_id'] ?>">
-                                <button class="btn sm" type="submit">Add to Cart</button>
+                                <button class="btn sm" type="submit" style="font-size:13.5px; font-weight:700; padding:0.65rem 1.35rem;">Add to Cart</button>
                             </form>
                         <?php } ?>
                     <?php } else { ?>
-                        <span class="muted" style="font-size:11px; text-transform:uppercase;">Out of Stock</span>
+                        <span class="muted" style="font-size:12.5px; font-weight:700; text-transform:uppercase; color:#ff6b6b;">Out of Stock</span>
                     <?php } ?>
                 </div>
             </article>
@@ -329,10 +329,10 @@ $highlight_posters = array(
                         Engineered to withstand grueling training sessions and high-stakes matches.
                     </p>
                     <div class="brewed-chips-row">
-                        <span class="brewed-chip"><span class="brewed-chip-icon">🏀</span> Official Match Balls</span>
-                        <span class="brewed-chip"><span class="brewed-chip-icon">👟</span> Court &amp; Trail Kicks</span>
-                        <span class="brewed-chip"><span class="brewed-chip-icon">🏋️</span> Cast Iron &amp; Dumbbells</span>
-                        <span class="brewed-chip"><span class="brewed-chip-icon">🥊</span> Impact Combat Gear</span>
+                        <span class="brewed-chip"><span style="color:#60a5fa; display:flex; align-items:center;"><?= icon('package', '', 18) ?></span> Official Match Balls</span>
+                        <span class="brewed-chip"><span style="color:#a78bfa; display:flex; align-items:center;"><?= icon('layers', '', 18) ?></span> Court &amp; Trail Kicks</span>
+                        <span class="brewed-chip"><span style="color:#34d399; display:flex; align-items:center;"><?= icon('award', '', 18) ?></span> Cast Iron &amp; Dumbbells</span>
+                        <span class="brewed-chip"><span style="color:#f87171; display:flex; align-items:center;"><?= icon('shield', '', 18) ?></span> Impact Combat Gear</span>
                     </div>
                 </div>
 
@@ -345,10 +345,10 @@ $highlight_posters = array(
                         instant store pick up at our Central Mall hub right before game time.
                     </p>
                     <div class="brewed-chips-row">
-                        <span class="brewed-chip"><span class="brewed-chip-icon">🚚</span> Express Doorstep Delivery</span>
-                        <span class="brewed-chip"><span class="brewed-chip-icon">🏪</span> Free In-Store Pick Up</span>
-                        <span class="brewed-chip"><span class="brewed-chip-icon">💵</span> Cash on Delivery (COD)</span>
-                        <span class="brewed-chip"><span class="brewed-chip-icon">📦</span> Step-by-Step Order Tracker</span>
+                        <span class="brewed-chip"><span style="color:#38bdf8; display:flex; align-items:center;"><?= icon('truck', '', 18) ?></span> Express Doorstep Delivery</span>
+                        <span class="brewed-chip"><span style="color:#fbbf24; display:flex; align-items:center;"><?= icon('store', '', 18) ?></span> Free In-Store Pick Up</span>
+                        <span class="brewed-chip"><span style="color:#4ade80; display:flex; align-items:center;"><?= icon('banknote', '', 18) ?></span> Cash on Delivery (COD)</span>
+                        <span class="brewed-chip"><span style="color:#818cf8; display:flex; align-items:center;"><?= icon('map-pin', '', 18) ?></span> Step-by-Step Order Tracker</span>
                     </div>
                 </div>
 
@@ -361,10 +361,10 @@ $highlight_posters = array(
                         and direct community support by people who train.
                     </p>
                     <div class="brewed-chips-row">
-                        <span class="brewed-chip"><span class="brewed-chip-icon">🏅</span> 100% Guaranteed Authentic</span>
-                        <span class="brewed-chip"><span class="brewed-chip-icon">⚡</span> Real-Time Stock Sync</span>
-                        <span class="brewed-chip"><span class="brewed-chip-icon">💬</span> Real Athlete Support</span>
-                        <span class="brewed-chip"><span class="brewed-chip-icon">🛡️</span> Data Privacy Act Protected</span>
+                        <span class="brewed-chip"><span style="color:#fbbf24; display:flex; align-items:center;"><?= icon('award', '', 18) ?></span> 100% Guaranteed Authentic</span>
+                        <span class="brewed-chip"><span style="color:#facc15; display:flex; align-items:center;"><?= icon('zap', '', 18) ?></span> Real-Time Stock Sync</span>
+                        <span class="brewed-chip"><span style="color:#38bdf8; display:flex; align-items:center;"><?= icon('message-square', '', 18) ?></span> Real Athlete Support</span>
+                        <span class="brewed-chip"><span style="color:#4ade80; display:flex; align-items:center;"><?= icon('lock', '', 18) ?></span> Data Privacy Act Protected</span>
                     </div>
                 </div>
             </div>
@@ -395,18 +395,18 @@ $highlight_posters = array(
         <div class="about-text">
             <div class="hero-eyebrow">[ THE SQUAD · UNITED &amp; UNSTOPPABLE ]</div>
             <h2 class="home-section-title">Built by Athletes, for Athletes.</h2>
-            <p class="muted" style="line-height:1.75; font-size:15px;">
+            <p class="muted" style="line-height:1.8; font-size:16.5px;">
                 Sportibai was built straight out of the court and gym. We know the frustration
                 of training with worn-out kicks and low-tier gear. Whether you're grinding on concrete,
                 hardwood, or iron — we equip athletes who never make excuses.
             </p>
-            <p class="muted" style="margin-top:1rem; line-height:1.75; font-size:15px;">
+            <p class="muted" style="margin-top:1rem; line-height:1.8; font-size:16.5px;">
                 Every basketball, dumbbell, and strap in our catalog is rigorously verified and approved
                 by real athletes who actually compete and train.
             </p>
-            <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap; margin-top:2rem;">
-                <a href="shop.php" class="btn" style="padding:0.85rem 2rem;">Shop All Gear →</a>
-                <span class="muted" style="font-size:13px; font-weight:600; letter-spacing:0.04em;">#UnitedUnstoppable</span>
+            <div style="display:flex; gap:1.25rem; align-items:center; flex-wrap:wrap; margin-top:2.25rem;">
+                <a href="shop.php" class="btn" style="padding:1.05rem 2.4rem; font-size:14.5px; font-weight:800; box-shadow:0 0 20px rgba(10,132,255,0.35);">Shop All Gear →</a>
+                <span class="muted" style="font-size:14px; font-weight:700; letter-spacing:0.06em; color:var(--color-brand-red);">#UnitedUnstoppable</span>
             </div>
         </div>
 

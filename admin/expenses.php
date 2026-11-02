@@ -79,24 +79,24 @@ require '../includes/header.php';
 
     <!-- KPI Summary Cards -->
     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1.25rem; margin-bottom:2rem;">
-        <div class="card in" style="padding:1.25rem 1.5rem;">
-            <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--color-fg-secondary); letter-spacing:0.8px;">
+        <div class="card in" style="padding:1.4rem 1.6rem; border-radius:16px;">
+            <div style="font-size:13px; font-weight:800; text-transform:uppercase; color:var(--color-fg-secondary); letter-spacing:0.8px;">
                 This Month's Outflow
             </div>
-            <div style="font-size:26px; font-weight:800; color:#ff9f96; margin:6px 0 2px;">
+            <div style="font-size:2.3rem; font-weight:900; color:#ff9f96; margin:6px 0 2px; font-family:var(--font-display);">
                 <?= peso($total_m_expenses) ?>
             </div>
-            <div class="muted" style="font-size:12px;">Disbursed in <?= date('F Y') ?></div>
+            <div class="muted" style="font-size:13.5px;">Disbursed in <?= date('F Y') ?></div>
         </div>
 
-        <div class="card in" style="padding:1.25rem 1.5rem;">
-            <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--color-fg-secondary); letter-spacing:0.8px;">
+        <div class="card in" style="padding:1.4rem 1.6rem; border-radius:16px;">
+            <div style="font-size:13px; font-weight:800; text-transform:uppercase; color:var(--color-fg-secondary); letter-spacing:0.8px;">
                 All-Time Expenses
             </div>
-            <div style="font-size:26px; font-weight:800; color:#fff; margin:6px 0 2px;">
+            <div style="font-size:2.3rem; font-weight:900; color:#fff; margin:6px 0 2px; font-family:var(--font-display);">
                 <?= peso($total_all_expenses) ?>
             </div>
-            <div class="muted" style="font-size:12px;"><?= $total_expense_count ?> total expense records logged</div>
+            <div class="muted" style="font-size:13.5px;"><?= $total_expense_count ?> total expense records logged</div>
         </div>
     </div>
 
@@ -149,26 +149,26 @@ require '../includes/header.php';
             </div>
         <?php } ?>
         <?php foreach ($expenses as $e) { ?>
-            <div class="line" style="gap:1rem;">
-                <div class="tile" style="--h: <?php echo ($e['expense_id'] * 47) % 360; ?>; aspect-ratio:1; max-height:56px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
-                    💸
+            <div class="line" style="gap:1rem; padding:1.15rem;">
+                <div class="tile" style="--h: <?php echo ($e['expense_id'] * 47) % 360; ?>; aspect-ratio:1; max-height:56px; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#fff;">
+                    <?= icon('banknote', '', 24) ?>
                 </div>
                 <div style="flex-grow:1;">
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <span class="brand-tag" style="font-size:11px; text-transform:uppercase; color:var(--color-accent-on-dark); font-weight:700;">
+                        <span class="brand-tag" style="font-size:12px; text-transform:uppercase; color:var(--color-accent-on-dark); font-weight:700;">
                             <?php echo htmlspecialchars($e['category']); ?>
                         </span>
-                        <span class="muted" style="font-size:11px;">• <?= date('M d, Y', strtotime($e['expense_date'])) ?></span>
+                        <span class="muted" style="font-size:12px;">• <?= date('M d, Y', strtotime($e['expense_date'])) ?></span>
                     </div>
-                    <h2 style="font-size:1.15rem; font-weight:700; margin-top:2px;"><?php echo htmlspecialchars($e['description']); ?></h2>
-                    <span class="muted" style="font-size:12px;">Amount: <strong style="color:#ff9f96; font-size:14px;"><?php echo peso($e['amount']); ?></strong></span>
+                    <h2 style="font-size:1.2rem; font-weight:700; margin-top:2px; color:#fff;"><?php echo htmlspecialchars($e['description']); ?></h2>
+                    <span class="muted" style="font-size:13.5px;">Amount: <strong style="color:#ff9f96; font-size:16px; font-family:var(--font-display);"><?php echo peso($e['amount']); ?></strong></span>
                 </div>
                 <div style="display:flex; gap:0.5rem; align-items:center;">
-                    <a class="btn ghost sm" href="expense_edit.php?id=<?php echo $e['expense_id']; ?>">Edit</a>
+                    <a class="btn ghost sm" href="expense_edit.php?id=<?php echo $e['expense_id']; ?>" style="font-size:13px; font-weight:700; padding:6px 14px;">Edit</a>
                     <form method="POST" action="expenses.php" style="display:inline" onsubmit="return confirm('Delete this expense?');">
                         <?= csrf_field() ?>
                         <input type="hidden" name="expense_id" value="<?php echo $e['expense_id']; ?>">
-                        <button class="btn ghost sm" type="submit" name="delete_expense" style="color:#ff9f96; border-color:rgba(255,100,100,0.25);">Delete</button>
+                        <button class="btn ghost sm" type="submit" name="delete_expense" style="color:#ff9f96; border-color:rgba(255,100,100,0.25); font-size:13px; font-weight:700; padding:6px 14px;">Delete</button>
                     </form>
                 </div>
             </div>

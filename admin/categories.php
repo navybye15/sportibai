@@ -145,45 +145,47 @@ require '../includes/header.php';
     <?php require '../includes/alert.php'; ?>
 
     <!-- KPI Summary Strip -->
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:1rem; margin-bottom:1.75rem;">
-        <div class="card in" style="padding:1.25rem; border-radius:14px; background:rgba(22, 24, 29, 0.7); border:1px solid rgba(255,255,255,0.08);">
-            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted);">Active Categories</div>
-            <div style="font-size:1.75rem; font-weight:800; color:#fff; margin-top:4px;"><?= $active_cat_count ?></div>
-            <div class="muted" style="font-size:11px; margin-top:2px;">Visible in shop navigation</div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:1.25rem; margin-bottom:2rem;">
+        <div class="card in" style="padding:1.4rem; border-radius:16px; background:rgba(22, 24, 29, 0.75); border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted);">Active Categories</div>
+            <div style="font-size:2rem; font-weight:900; font-family:var(--font-display); color:#fff; margin-top:4px;"><?= $active_cat_count ?></div>
+            <div class="muted" style="font-size:13px; margin-top:3px;">Visible in shop navigation</div>
         </div>
-        <div class="card in" style="padding:1.25rem; border-radius:14px; background:rgba(22, 24, 29, 0.7); border:1px solid rgba(255,255,255,0.08);">
-            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted);">Categorized Products</div>
-            <div style="font-size:1.75rem; font-weight:800; color:var(--color-brand-green); margin-top:4px;"><?= array_sum($item_counts) ?></div>
-            <div class="muted" style="font-size:11px; margin-top:2px;">Total items across active categories</div>
+        <div class="card in" style="padding:1.4rem; border-radius:16px; background:rgba(22, 24, 29, 0.75); border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted);">Categorized Products</div>
+            <div style="font-size:2rem; font-weight:900; font-family:var(--font-display); color:var(--color-brand-green); margin-top:4px;"><?= array_sum($item_counts) ?></div>
+            <div class="muted" style="font-size:13px; margin-top:3px;">Total items across active categories</div>
         </div>
-        <div class="card in" style="padding:1.25rem; border-radius:14px; background:rgba(22, 24, 29, 0.7); border:1px solid rgba(255,255,255,0.08);">
-            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted);">Archived Depts</div>
-            <div style="font-size:1.75rem; font-weight:800; color:#ff9f96; margin-top:4px;"><?= $archived_cat_count ?></div>
-            <div class="muted" style="font-size:11px; margin-top:2px;">Hidden from storefront</div>
+        <div class="card in" style="padding:1.4rem; border-radius:16px; background:rgba(22, 24, 29, 0.75); border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted);">Archived Depts</div>
+            <div style="font-size:2rem; font-weight:900; font-family:var(--font-display); color:#ff9f96; margin-top:4px;"><?= $archived_cat_count ?></div>
+            <div class="muted" style="font-size:13px; margin-top:3px;">Hidden from storefront</div>
         </div>
     </div>
 
     <!-- Add New Category Intake Panel -->
     <?php if (!$is_archived_view) { ?>
     <div class="card in" style="padding:1.5rem; border-radius:16px; background:rgba(22, 24, 29, 0.7); border:1px solid rgba(255,255,255,0.08); margin-bottom:2rem; box-shadow:0 8px 24px rgba(0,0,0,0.25);">
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:1rem;">
-            <div style="width:32px; height:32px; border-radius:8px; background:rgba(224, 35, 28, 0.15); border:1px solid rgba(224, 35, 28, 0.3); display:flex; align-items:center; justify-content:center; font-size:14px;">
-                🏷️
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:1.25rem;">
+            <div style="width:40px; height:40px; border-radius:10px; background:rgba(224, 35, 28, 0.15); border:1px solid rgba(224, 35, 28, 0.3); display:flex; align-items:center; justify-content:center; color:var(--color-brand-red);">
+                <?= icon('tag', '', 20) ?>
             </div>
             <div>
-                <h2 style="font-size:1.15rem; font-weight:700; color:#fff; margin:0;">Create New Category</h2>
-                <div class="muted" style="font-size:12px;">Add a new taxonomy label for your gear catalog.</div>
+                <h2 style="font-size:1.25rem; font-weight:700; color:#fff; margin:0;">Create New Category</h2>
+                <div class="muted" style="font-size:13.5px;">Add a new taxonomy label for your gear catalog.</div>
             </div>
         </div>
         <form method="POST" action="categories.php" style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; margin:0;">
             <?= csrf_field() ?>
             <div style="position:relative; flex:1; min-width:16rem;">
                 <input type="text" name="name" placeholder="Category name (e.g. Footwear, Training Gear, Rackets)..." required
-                    class="search" style="width:100%; padding:0.75rem 1rem 0.75rem 2.2rem; font-size:13px; border-radius:10px;">
-                <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); opacity:0.5; font-size:13px;">➕</span>
+                    class="search" style="width:100%; padding:0.85rem 1rem 0.85rem 2.6rem; font-size:14.5px; border-radius:12px;">
+                <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--color-muted); display:flex; align-items:center;">
+                    <?= icon('plus', '', 16) ?>
+                </span>
             </div>
-            <button class="btn" type="submit" name="add_category" style="padding:0.75rem 1.5rem; font-size:13px; font-weight:700; white-space:nowrap;">
-                + Create Category
+            <button class="btn" type="submit" name="add_category" style="padding:0.85rem 1.75rem; font-size:14px; font-weight:700; white-space:nowrap; display:inline-flex; align-items:center; gap:6px;">
+                <?= icon('plus', '', 16) ?> Create Category
             </button>
         </form>
     </div>
@@ -202,9 +204,9 @@ require '../includes/header.php';
 
         <?php if (count($categories) === 0) { ?>
             <div class="card in" style="text-align:center; padding:4rem 2rem; border-radius:16px;">
-                <div style="font-size:2.5rem; margin-bottom:0.75rem;">🏷️</div>
-                <h3 style="font-size:1.15rem; font-weight:700; color:#fff; margin-bottom:4px;">No Categories Found</h3>
-                <p class="muted" style="font-size:13px; margin:0;">
+                <div style="margin-bottom:1rem; color:var(--color-fg-muted);"><?= icon('tag', '', 48) ?></div>
+                <h3 style="font-size:1.25rem; font-weight:700; color:#fff; margin-bottom:6px;">No Categories Found</h3>
+                <p class="muted" style="font-size:14.5px; margin:0;">
                     <?= $is_archived_view ? 'There are currently no archived categories.' : 'No active categories found. Add your first category using the form above.' ?>
                 </p>
             </div>
@@ -220,29 +222,29 @@ require '../includes/header.php';
                             <!-- Header with Dynamic Avatar & Product Count Badge -->
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
                                 <div style="display:flex; align-items:center; gap:10px;">
-                                    <div style="width:36px; height:36px; border-radius:10px; background:hsl(<?= $hue ?>, 65%, 45%); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; color:#fff; box-shadow:0 2px 10px hsla(<?= $hue ?>, 65%, 45%, 0.35); flex-shrink:0;">
+                                    <div style="width:38px; height:38px; border-radius:10px; background:hsl(<?= $hue ?>, 65%, 45%); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; box-shadow:0 2px 10px hsla(<?= $hue ?>, 65%, 45%, 0.35); flex-shrink:0;">
                                         <?= strtoupper(substr($c['name'], 0, 1)) ?>
                                     </div>
                                     <div>
-                                        <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted);">Category ID #<?= $cid ?></div>
+                                        <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--color-muted); font-family:var(--font-mono);">ID #<?= $cid ?></div>
                                     </div>
                                 </div>
-                                <span class="status-badge" style="font-size:11px; padding:3px 9px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--color-fg-secondary);">
+                                <span class="status-badge" style="font-size:12px; font-weight:700; padding:4px 10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--color-fg-secondary);">
                                     <?= $count ?> <?= $count === 1 ? 'item' : 'items' ?>
                                 </span>
                             </div>
 
                             <!-- Display Mode -->
                             <div id="cat_display_<?= $cid ?>" style="margin-bottom:1.25rem;">
-                                <h3 style="font-size:1.15rem; font-weight:700; color:#fff; margin:0 0 6px; letter-spacing:-0.01em;">
+                                <h3 style="font-size:1.25rem; font-weight:700; color:#fff; margin:0 0 6px; letter-spacing:-0.01em;">
                                     <?= htmlspecialchars($c['name']) ?>
                                 </h3>
                                 <?php if (!$is_archived_view) { ?>
-                                    <a href="items.php?cat=<?= $cid ?>" style="font-size:12px; color:var(--color-accent-on-dark); font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                                    <a href="items.php?cat=<?= $cid ?>" style="font-size:13px; color:var(--color-accent-on-dark); font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
                                         Browse <?= $count ?> in catalog &rarr;
                                     </a>
                                 <?php } else { ?>
-                                    <span class="muted" style="font-size:11px;">Archived Department</span>
+                                    <span class="muted" style="font-size:12px;">Archived Department</span>
                                 <?php } ?>
                             </div>
 
@@ -251,27 +253,27 @@ require '../includes/header.php';
                             <form method="POST" action="categories.php" id="cat_edit_<?= $cid ?>" style="display:none; margin:0 0 1.25rem;">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="category_id" value="<?= $cid ?>">
-                                <label style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--color-muted); display:block; margin-bottom:4px;">Rename Category</label>
-                                <div style="display:flex; gap:6px; align-items:center;">
+                                <label style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--color-muted); display:block; margin-bottom:6px;">Rename Category</label>
+                                <div style="display:flex; gap:8px; align-items:center;">
                                     <input type="text" name="name" value="<?= htmlspecialchars($c['name']) ?>" required
-                                           class="search" style="padding:0.45rem 0.75rem; font-size:12px; font-weight:600; flex:1;">
-                                    <button class="btn sm" type="submit" name="rename_category" style="padding:0.45rem 0.8rem; font-size:11px;">Save</button>
-                                    <button class="btn ghost sm" type="button" onclick="cancelCatEdit(<?= $cid ?>)" style="padding:0.45rem 0.65rem; font-size:11px;">✕</button>
+                                           class="search" style="padding:0.6rem 0.85rem; font-size:13.5px; font-weight:600; flex:1;">
+                                    <button class="btn sm" type="submit" name="rename_category" style="padding:0.6rem 1rem; font-size:13px; font-weight:700;">Save</button>
+                                    <button class="btn ghost sm" type="button" onclick="cancelCatEdit(<?= $cid ?>)" style="padding:0.6rem 0.8rem; font-size:13px; display:inline-flex; align-items:center;"><?= icon('x', '', 14) ?></button>
                                 </div>
                             </form>
                             <?php } ?>
                         </div>
 
                         <!-- Card Action Footer -->
-                        <div style="display:flex; gap:0.5rem; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.06); padding-top:0.75rem; margin-top:auto;">
+                        <div style="display:flex; gap:0.5rem; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.06); padding-top:0.85rem; margin-top:auto;">
                             <?php if (!$is_archived_view) { ?>
-                                <button class="btn ghost sm" type="button" onclick="openCatEdit(<?= $cid ?>)" style="font-size:11px; padding:5px 12px; border-radius:8px;">
-                                    ✏️ Rename
+                                <button class="btn ghost sm" type="button" onclick="openCatEdit(<?= $cid ?>)" style="font-size:12.5px; font-weight:700; padding:6px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:5px;">
+                                    <?= icon('edit', '', 14) ?> Rename
                                 </button>
                                 <form method="POST" action="categories.php" onsubmit="return confirmArchive(<?= $count ?>, '<?= htmlspecialchars(addslashes($c['name'])) ?>');" style="margin:0;">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="category_id" value="<?= $cid ?>">
-                                    <button class="btn ghost sm" type="submit" name="deactivate_category" style="color:#ff9f96; border-color:rgba(255,100,100,0.25); font-size:11px; padding:5px 12px; border-radius:8px;">
+                                    <button class="btn ghost sm" type="submit" name="deactivate_category" style="color:#ff9f96; border-color:rgba(255,100,100,0.25); font-size:12.5px; font-weight:700; padding:6px 14px; border-radius:8px;">
                                         Archive
                                     </button>
                                 </form>
@@ -279,7 +281,7 @@ require '../includes/header.php';
                                 <form method="POST" action="categories.php" style="width:100%; margin:0;">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="category_id" value="<?= $cid ?>">
-                                    <button class="btn sm" type="submit" name="restore_category" style="width:100%; font-size:11px; padding:6px 12px; border-radius:8px; background:rgba(81,175,67,0.85);">
+                                    <button class="btn sm" type="submit" name="restore_category" style="width:100%; font-size:13px; font-weight:700; padding:8px 14px; border-radius:8px; background:rgba(81,175,67,0.85);">
                                         ↺ Restore Category
                                     </button>
                                 </form>

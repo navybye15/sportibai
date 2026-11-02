@@ -170,61 +170,73 @@ require '../includes/header.php';
             <h1 style="font-size: var(--text-display-l); margin:0;">Sales & Revenue Report</h1>
             <p class="muted" style="font-size:var(--text-body-sm); margin-top:0.3rem;">Audit store earnings, completed order revenue, expenses, and net profit.</p>
         </div>
-        <div style="display:flex; gap:8px;" class="no-print">
-            <a class="btn ghost sm" href="sales_report.php?from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?>&export=csv">
-                📥 Export CSV
+        <div style="display:flex; gap:10px;" class="no-print">
+            <a class="btn ghost sm" href="sales_report.php?from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?>&export=csv" style="display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:700;">
+                <?= icon('download', '', 15) ?> Export CSV
             </a>
-            <button class="btn ghost sm" type="button" onclick="window.print()">
-                🖨️ Print Report
+            <button class="btn ghost sm" type="button" onclick="window.print()" style="display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:700;">
+                <?= icon('printer', '', 15) ?> Print Report
             </button>
         </div>
     </div>
 
-    <!-- Date Shortcut Filters -->
-    <div class="filter-search-bar no-print" style="margin-bottom:1.25rem;">
-        <span class="rail-section-title" style="margin:0 0.5rem 0 0;">Range:</span>
-        <a class="btn ghost sm" href="sales_report.php?from=<?php echo $today; ?>&to=<?php echo $today; ?>">Today</a>
-        <a class="btn ghost sm" href="sales_report.php?from=<?php echo $week_start; ?>&to=<?php echo $week_end; ?>">This Week</a>
-        <a class="btn ghost sm" href="sales_report.php?from=<?php echo $month_start; ?>&to=<?php echo $month_end; ?>">This Month</a>
+    <!-- Date Shortcut Tabs & Range Picker -->
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1.25rem; margin-bottom:1.75rem;" class="no-print">
+        <div class="order-tabs admin-tabs" style="margin-bottom:0;">
+            <?php
+            $is_today = ($from === $today && $to === $today);
+            $is_week  = ($from === $week_start && $to === $week_end);
+            $is_month = ($from === $month_start && $to === $month_end);
+            ?>
+            <a class="order-tab <?= $is_today ? 'active' : '' ?>" href="sales_report.php?from=<?php echo $today; ?>&to=<?php echo $today; ?>" style="font-size:14px; font-weight:700; padding:10px 18px;">
+                Today
+            </a>
+            <a class="order-tab <?= $is_week ? 'active' : '' ?>" href="sales_report.php?from=<?php echo $week_start; ?>&to=<?php echo $week_end; ?>" style="font-size:14px; font-weight:700; padding:10px 18px;">
+                This Week
+            </a>
+            <a class="order-tab <?= $is_month ? 'active' : '' ?>" href="sales_report.php?from=<?php echo $month_start; ?>&to=<?php echo $month_end; ?>" style="font-size:14px; font-weight:700; padding:10px 18px;">
+                This Month
+            </a>
+        </div>
         
-        <form method="GET" action="sales_report.php" style="display:flex; gap:0.5rem; align-items:center; margin-left:auto; flex-wrap:wrap;">
-            <input class="search" type="date" name="from" value="<?php echo htmlspecialchars($from); ?>" style="min-width:9rem; padding:0.45rem 0.8rem;">
-            <span class="muted" style="font-size:12px;">to</span>
-            <input class="search" type="date" name="to" value="<?php echo htmlspecialchars($to); ?>" style="min-width:9rem; padding:0.45rem 0.8rem;">
-            <button class="btn sm" type="submit">Filter Range</button>
+        <form method="GET" action="sales_report.php" style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap; margin:0;">
+            <input class="search" type="date" name="from" value="<?php echo htmlspecialchars($from); ?>" style="min-width:9.5rem; padding:0.6rem 0.9rem; font-size:13.5px; font-weight:600; border-radius:10px;">
+            <span class="muted" style="font-size:13px; font-weight:700;">to</span>
+            <input class="search" type="date" name="to" value="<?php echo htmlspecialchars($to); ?>" style="min-width:9.5rem; padding:0.6rem 0.9rem; font-size:13.5px; font-weight:600; border-radius:10px;">
+            <button class="btn sm" type="submit" style="font-size:13px; font-weight:700; padding:0.6rem 1.25rem;">Filter Range</button>
         </form>
     </div>
 
     <!-- Metric Cards (BrewedOps stats cards) -->
     <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 2rem;">
-        <div class="card in">
+        <div class="card in" style="padding:1.5rem;">
             <div class="info">
-                <span class="brand-tag">GROSS REVENUE</span>
-                <h2 style="font-size:1.85rem; color:var(--color-accent-on-dark);"><?php echo peso($total_sales); ?></h2>
-                <p class="muted" style="font-size:var(--text-body-sm);"><?php echo $order_count; ?> completed order(s)</p>
+                <span class="brand-tag" style="font-size:12.5px; font-weight:800; letter-spacing:0.8px;">GROSS REVENUE</span>
+                <h2 style="font-size:2.3rem; font-weight:900; font-family:var(--font-display); color:var(--color-accent-on-dark); margin:6px 0 2px;"><?php echo peso($total_sales); ?></h2>
+                <p class="muted" style="font-size:13.5px;"><?php echo $order_count; ?> completed order(s)</p>
             </div>
         </div>
-        <div class="card in">
+        <div class="card in" style="padding:1.5rem;">
             <div class="info">
-                <span class="brand-tag">COST OF GOODS</span>
-                <h2 style="font-size:1.85rem; color:#ffc069;"><?php echo peso($total_cogs); ?></h2>
-                <p class="muted" style="font-size:var(--text-body-sm);">Inventory capital sold</p>
+                <span class="brand-tag" style="font-size:12.5px; font-weight:800; letter-spacing:0.8px;">COST OF GOODS</span>
+                <h2 style="font-size:2.3rem; font-weight:900; font-family:var(--font-display); color:#ffc069; margin:6px 0 2px;"><?php echo peso($total_cogs); ?></h2>
+                <p class="muted" style="font-size:13.5px;">Inventory capital sold</p>
             </div>
         </div>
-        <div class="card in">
+        <div class="card in" style="padding:1.5rem;">
             <div class="info">
-                <span class="brand-tag">EXPENSES DEDUCTED</span>
-                <h2 style="font-size:1.85rem; color:#ff9f96;"><?php echo peso($total_expenses); ?></h2>
-                <p class="muted" style="font-size:var(--text-body-sm);">Operating & logistics disbursements</p>
+                <span class="brand-tag" style="font-size:12.5px; font-weight:800; letter-spacing:0.8px;">EXPENSES DEDUCTED</span>
+                <h2 style="font-size:2.3rem; font-weight:900; font-family:var(--font-display); color:#ff9f96; margin:6px 0 2px;"><?php echo peso($total_expenses); ?></h2>
+                <p class="muted" style="font-size:13.5px;">Operating & logistics disbursements</p>
             </div>
         </div>
-        <div class="card in" style="border-color: <?php echo $net_income >= 0 ? 'rgba(81,175,67,0.3)' : 'rgba(255,100,100,0.3)'; ?>;">
+        <div class="card in" style="padding:1.5rem; border-color: <?php echo $net_income >= 0 ? 'rgba(81,175,67,0.3)' : 'rgba(255,100,100,0.3)'; ?>;">
             <div class="info">
-                <span class="brand-tag">NET STORE PROFIT</span>
-                <h2 style="font-size:1.85rem; color: <?php echo $net_income >= 0 ? 'var(--color-brand-green)' : '#ff9f96'; ?>;">
+                <span class="brand-tag" style="font-size:12.5px; font-weight:800; letter-spacing:0.8px;">NET STORE PROFIT</span>
+                <h2 style="font-size:2.3rem; font-weight:900; font-family:var(--font-display); color: <?php echo $net_income >= 0 ? 'var(--color-brand-green)' : '#ff9f96'; ?>; margin:6px 0 2px;">
                     <?php echo peso($net_income); ?>
                 </h2>
-                <p class="muted" style="font-size:var(--text-body-sm);">Sales minus COGS & expenses</p>
+                <p class="muted" style="font-size:13.5px;">Sales minus COGS & expenses</p>
             </div>
         </div>
     </div>
@@ -278,10 +290,12 @@ require '../includes/header.php';
             <div class="lines" style="padding:0;">
                 <?php foreach ($best_sellers as $b) { ?>
                     <div class="line">
-                        <div class="tile" style="--h: 150; aspect-ratio:1; max-height:56px;">★</div>
+                        <div class="tile" style="--h: 150; aspect-ratio:1; max-height:56px; display:flex; align-items:center; justify-content:center; color:#ffd166;">
+                            <?= icon('star', '', 22) ?>
+                        </div>
                         <div>
-                            <h2 style="font-size:1.15rem;"><?php echo htmlspecialchars($b['name']); ?></h2>
-                            <span class="muted" style="font-size:var(--text-body-sm);">Quantity sold: <strong style="color:var(--color-fg);"><?php echo $b['qty_sold']; ?></strong> &nbsp;•&nbsp; Revenue: <strong style="color:var(--color-accent-on-dark);"><?php echo peso($b['revenue']); ?></strong></span>
+                            <h2 style="font-size:1.25rem; font-weight:700; color:#fff;"><?php echo htmlspecialchars($b['name']); ?></h2>
+                            <span class="muted" style="font-size:14px;">Quantity sold: <strong style="color:var(--color-fg); font-size:15px;"><?php echo $b['qty_sold']; ?></strong> &nbsp;•&nbsp; Revenue: <strong style="color:var(--color-accent-on-dark); font-size:15px; font-family:var(--font-display);"><?php echo peso($b['revenue']); ?></strong></span>
                         </div>
                     </div>
                 <?php } ?>

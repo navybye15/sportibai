@@ -21,7 +21,7 @@ if (isset($_SESSION['cart'])) $cart_count = array_sum($_SESSION['cart']);
 <title><?= htmlspecialchars($page_title) ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="<?= $base ?>css/style.css?v=<?= @filemtime(__DIR__ . '/../css/style.css') ?: time() ?>">
 </head>
 <body>
@@ -61,7 +61,9 @@ if (isset($_SESSION['cart'])) $cart_count = array_sum($_SESSION['cart']);
         <nav class="nav-links">
             <a href="<?= $base ?>index.php">Home</a>
             <a href="<?= $base ?>shop.php">Shop</a>
-            <a href="<?= $base ?>orders.php">Orders</a>
+            <?php if (isset($_SESSION['user_id'])) { ?>
+                <a href="<?= $base ?>orders.php">Orders</a>
+            <?php } ?>
             <a href="<?= $base ?>view_cart.php">Cart <span class="badge" id="nav-cart-badge"><?= $cart_count ?></span></a>
             <?php if (isset($_SESSION['user_id'])) { ?>
                 <a href="<?= $base ?>profile.php">Profile</a>

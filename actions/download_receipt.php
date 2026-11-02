@@ -12,7 +12,7 @@ if ($order_id <= 0) {
 
 // Access check: User must be logged in as admin OR be the owner of the order
 if (!isset($_SESSION['user_id'])) {
-    header('Location: ../auth/login.php');
+    header('Location: ../auth/login.php?redirect=' . urlencode('actions/download_receipt.php?order_id=' . $order_id));
     exit;
 }
 

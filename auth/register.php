@@ -58,13 +58,24 @@ if (isset($_POST['submit'])) {
         }
 
         try {
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            $sql = "INSERT INTO users (email, password, role, status, profile_photo) VALUES (?, ?, 'user', 'active', ?)";
-            mysqli_execute_query($conn, $sql, array($email, $hashed_password, $profile_photo ?: null));
+            $sql_chk = "SELECT user_id FROM users WHERE email = ? LIMIT 1";
+            $res_chk = mysqli_execute_query($conn, $sql_chk, array($email));
+            if (mysqli_num_rows($res_chk) > 0) {
+                $errors['email'] = 'That email is already registered. Please log in instead.';
+            } else {
+                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+                $sql = "INSERT INTO users (email, password, role, status, profile_photo) VALUES (?, ?, 'user', 'active', ?)";
+                mysqli_execute_query($conn, $sql, array($email, $hashed_password, $profile_photo ?: null));
+                $new_user_id = mysqli_insert_id($conn);
 
-            $_SESSION['success'] = 'Account created successfully! You may now log in.';
-            header('Location: login.php');
-            exit;
+                // Automatically register linked customer record
+                $sql_c = "INSERT INTO customer (user_id, first_name, last_name, address, province, postal_code, landmark, phone) VALUES (?, '', '', '', '', '', '', '')";
+                mysqli_execute_query($conn, $sql_c, array($new_user_id));
+
+                $_SESSION['success'] = 'Account created successfully! You may now log in.';
+                header('Location: login.php');
+                exit;
+            }
         } catch (mysqli_sql_exception $e) {
             if ($e->getCode() == 1062) {
                 $errors['email'] = 'That email is already registered. Please log in instead.';
@@ -93,7 +104,10 @@ require __DIR__ . '/../includes/header.php';
             <label class="form-label">Email Address</label>
             <input type="text" name="email" value="<?php echo htmlspecialchars($email_val); ?>" placeholder="athlete@sportibai.com" style="margin-top:0.75rem; <?= isset($errors['email']) ? 'border-color:#ff6b6b;' : '' ?>">
             <?php if (isset($errors['email'])) { ?>
-                <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors['email']) ?></div>
+                <div style="color:#ff9f96; font-size:13px; margin-top:5px; display:flex; align-items:center; gap:5px; font-weight:600;">
+                    <?= icon('alert-triangle', '', 14) ?>
+                    <span><?= htmlspecialchars($errors['email']) ?></span>
+                </div>
             <?php } ?>
         </div>
         
@@ -102,7 +116,10 @@ require __DIR__ . '/../includes/header.php';
             <label class="form-label">Password (at least 6 characters)</label>
             <input type="password" name="password" placeholder="••••••••" style="margin-top:0.75rem; <?= isset($errors['password']) ? 'border-color:#ff6b6b;' : '' ?>">
             <?php if (isset($errors['password'])) { ?>
-                <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors['password']) ?></div>
+                <div style="color:#ff9f96; font-size:13px; margin-top:5px; display:flex; align-items:center; gap:5px; font-weight:600;">
+                    <?= icon('alert-triangle', '', 14) ?>
+                    <span><?= htmlspecialchars($errors['password']) ?></span>
+                </div>
             <?php } ?>
         </div>
 
@@ -111,21 +128,30 @@ require __DIR__ . '/../includes/header.php';
             <label class="form-label">Confirm Password</label>
             <input type="password" name="confirm_pass" placeholder="••••••••" style="margin-top:0.75rem; <?= isset($errors['confirm_pass']) ? 'border-color:#ff6b6b;' : '' ?>">
             <?php if (isset($errors['confirm_pass'])) { ?>
-                <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors['confirm_pass']) ?></div>
+                <div style="color:#ff9f96; font-size:13px; margin-top:5px; display:flex; align-items:center; gap:5px; font-weight:600;">
+                    <?= icon('alert-triangle', '', 14) ?>
+                    <span><?= htmlspecialchars($errors['confirm_pass']) ?></span>
+                </div>
             <?php } ?>
         </div>
 
         <!-- Profile Photo (MP2 Requirement: Upload Photo on Registration) -->
         <div>
-            <label class="form-label">Profile Photo <span class="muted" style="font-weight:400; font-size:11px;">(Optional)</span></label>
+            <label class="form-label">Profile Photo <span class="muted" style="font-weight:400; font-size:12px;">(Optional)</span></label>
             <div style="margin-top:0.5rem; display:flex; align-items:center; gap:10px;">
                 <input type="file" name="profile_photo" id="reg_photo_input" accept=".jpg,.jpeg,.png,.webp" style="display:none;" onchange="document.getElementById('reg_photo_preview_name').innerText = this.files[0] ? this.files[0].name : '';">
-                <button type="button" class="btn ghost sm" onclick="document.getElementById('reg_photo_input').click();">📷 Choose Avatar Photo</button>
-                <span id="reg_photo_preview_name" class="muted" style="font-size:12px;"></span>
+                <button type="button" class="btn ghost sm" onclick="document.getElementById('reg_photo_input').click();" style="display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:700;">
+                    <?= icon('camera', '', 15) ?>
+                    <span>Choose Avatar Photo</span>
+                </button>
+                <span id="reg_photo_preview_name" class="muted" style="font-size:13px;"></span>
             </div>
-            <p class="muted" style="font-size:11px; margin-top:4px;">JPG, PNG, or WEBP (Max 10MB). You can also set or change this anytime in My Profile.</p>
+            <p class="muted" style="font-size:12.5px; margin-top:5px;">JPG, PNG, or WEBP (Max 10MB). You can also set or change this anytime in My Profile.</p>
             <?php if (isset($errors['profile_photo'])) { ?>
-                <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors['profile_photo']) ?></div>
+                <div style="color:#ff9f96; font-size:13px; margin-top:5px; display:flex; align-items:center; gap:5px; font-weight:600;">
+                    <?= icon('alert-triangle', '', 14) ?>
+                    <span><?= htmlspecialchars($errors['profile_photo']) ?></span>
+                </div>
             <?php } ?>
         </div>
 

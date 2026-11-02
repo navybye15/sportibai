@@ -264,18 +264,18 @@ require '../includes/header.php';
             <div class="hero-eyebrow" style="color:var(--color-brand-red);">[ CATALOG MANAGEMENT ]</div>
             <h1 style="font-size: var(--text-display-l); line-height:1.15; margin:2px 0 0;">Manage Items</h1>
         </div>
-        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
             <?php if (!$is_archived_view) { ?>
-                <button type="button" class="btn sm" onclick="toggleAddForm()" style="box-shadow:0 0 16px rgba(10,132,255,0.35);">
-                    + Add New Item
+                <button type="button" class="btn sm" onclick="toggleAddForm()" style="box-shadow:0 0 16px rgba(10,132,255,0.35); font-size:14px; font-weight:700; padding:10px 20px; border-radius:12px; display:inline-flex; align-items:center; gap:6px;">
+                    <?= icon('plus', '', 16) ?> Add New Item
                 </button>
             <?php } ?>
-            <div class="order-tabs" style="margin-bottom:0; border-bottom:none;">
-                <a href="items.php?view=active" class="order-tab <?= !$is_archived_view ? 'active' : '' ?>">
-                    Active <span class="tab-badge"><?= $active_count ?></span>
+            <div class="order-tabs admin-tabs" style="margin-bottom:0; border-bottom:none;">
+                <a href="items.php?view=active" class="order-tab <?= !$is_archived_view ? 'active' : '' ?>" style="font-size:14px; font-weight:700; padding:10px 18px;">
+                    Active <span class="tab-badge" style="font-size:12px;"><?= $active_count ?></span>
                 </a>
-                <a href="items.php?view=archived" class="order-tab <?= $is_archived_view ? 'active' : '' ?>">
-                    Archived <span class="tab-badge"><?= $archived_count ?></span>
+                <a href="items.php?view=archived" class="order-tab <?= $is_archived_view ? 'active' : '' ?>" style="font-size:14px; font-weight:700; padding:10px 18px;">
+                    Archived <span class="tab-badge" style="font-size:12px;"><?= $archived_count ?></span>
                 </a>
             </div>
         </div>
@@ -362,14 +362,16 @@ require '../includes/header.php';
             </div>
 
             <!-- Dynamic Size Breakdown for Apparel (Damit) -->
-            <div id="apparel_sizes_block" style="display:none; grid-column: 1 / -1; background:rgba(224,35,28,0.06); border:1px solid rgba(224,35,28,0.3); border-radius:8px; padding:1.25rem;">
+            <div id="apparel_sizes_block" style="display:none; grid-column: 1 / -1; background:rgba(224,35,28,0.06); border:1px solid rgba(224,35,28,0.3); border-radius:10px; padding:1.25rem;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:0.75rem;">
                     <div>
-                        <strong style="color:var(--color-brand-red); font-size:13px;">👕 APPAREL SIZES BREAKDOWN (Damit)</strong>
-                        <p class="muted" style="font-size:11px; margin-top:2px;">Lagyan ng stock ang bawat sukat ng damit (XS, S, M, L, XL, 2XL).</p>
+                        <strong style="color:var(--color-brand-red); font-size:14.5px; display:inline-flex; align-items:center; gap:6px;">
+                            <?= icon('layers', '', 16) ?> APPAREL SIZES BREAKDOWN (Damit)
+                        </strong>
+                        <p class="muted" style="font-size:12.5px; margin-top:3px;">Lagyan ng stock ang bawat sukat ng damit (XS, S, M, L, XL, 2XL).</p>
                     </div>
-                    <div style="font-size:12px; font-weight:700;">
-                        Total Stock: <span id="apparel_total_badge" style="color:var(--color-brand-green); font-size:14px;">0</span> units
+                    <div style="font-size:13.5px; font-weight:700;">
+                        Total Stock: <span id="apparel_total_badge" style="color:var(--color-brand-green); font-size:16px;">0</span> units
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(90px, 1fr)); gap:10px;">
@@ -383,14 +385,16 @@ require '../includes/header.php';
             </div>
 
             <!-- Dynamic Size Breakdown for Footwear (Sapatos) -->
-            <div id="footwear_sizes_block" style="display:none; grid-column: 1 / -1; background:rgba(60,130,246,0.08); border:1px solid rgba(60,130,246,0.35); border-radius:8px; padding:1.25rem;">
+            <div id="footwear_sizes_block" style="display:none; grid-column: 1 / -1; background:rgba(60,130,246,0.08); border:1px solid rgba(60,130,246,0.35); border-radius:10px; padding:1.25rem;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:0.75rem;">
                     <div>
-                        <strong style="color:#60a5fa; font-size:13px;">👟 FOOTWEAR SIZES BREAKDOWN (Sapatos)</strong>
-                        <p class="muted" style="font-size:11px; margin-top:2px;">Lagyan ng stock ang bawat EU shoe size (39, 40, 41, 42, 43, 44, 45).</p>
+                        <strong style="color:#60a5fa; font-size:14.5px; display:inline-flex; align-items:center; gap:6px;">
+                            <?= icon('package', '', 16) ?> FOOTWEAR SIZES BREAKDOWN (Sapatos)
+                        </strong>
+                        <p class="muted" style="font-size:12.5px; margin-top:3px;">Lagyan ng stock ang bawat EU shoe size (39, 40, 41, 42, 43, 44, 45).</p>
                     </div>
-                    <div style="font-size:12px; font-weight:700;">
-                        Total Stock: <span id="footwear_total_badge" style="color:var(--color-brand-green); font-size:14px;">0</span> units
+                    <div style="font-size:13.5px; font-weight:700;">
+                        Total Stock: <span id="footwear_total_badge" style="color:var(--color-brand-green); font-size:16px;">0</span> units
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(90px, 1fr)); gap:10px;">
@@ -431,7 +435,7 @@ require '../includes/header.php';
                 stdBlock.style.display = 'block';
                 appBlock.style.display = 'none';
                 footBlock.style.display = 'none';
-                if (stdInput) stdInput.required = true;
+                if (stdInput) stdInput.required = false;
             }
         }
 
@@ -511,22 +515,22 @@ require '../includes/header.php';
                         <?php } ?>
                     </div>
                     <a href="item_edit.php?id=<?php echo $item['item_id']; ?>" style="color:inherit; text-decoration:none;" title="Click item name to edit">
-                        <h2 style="font-size:1.15rem; margin-top:2px; display:inline-block;"><?php echo htmlspecialchars($item['name']); ?> <span style="font-size:12px; color:var(--color-accent-on-dark); opacity:0.8;">✏️</span></h2>
+                        <h2 style="font-size:1.3rem; font-weight:700; margin-top:2px; display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display);"><?php echo htmlspecialchars($item['name']); ?> <span style="color:var(--color-accent-on-dark); opacity:0.8;"><?= icon('edit', '', 14) ?></span></h2>
                     </a>
-                    <div class="muted" style="font-size:var(--text-body-sm); margin-top:4px; display:flex; flex-wrap:wrap; gap:10px;">
-                        <span>Price: <strong style="color:var(--color-fg)"><?php echo peso($item['price']); ?></strong></span>
+                    <div class="muted" style="font-size:14.5px; margin-top:5px; display:flex; flex-wrap:wrap; gap:12px;">
+                        <span>Price: <strong style="color:var(--color-fg); font-size:15.5px; font-family:var(--font-display);"><?php echo peso($item['price']); ?></strong></span>
                         <?php if ($cost > 0) { ?>
-                            <span>Cost: <strong><?php echo peso($cost); ?></strong> (<?= round($margin, 1) ?>% profit)</span>
+                            <span>Cost: <strong style="font-size:15px;"><?php echo peso($cost); ?></strong> (<?= round($margin, 1) ?>% profit)</span>
                         <?php } ?>
-                        <span>Total Stock: <strong style="<?php echo $item['stock'] < 5 ? 'color:#ff9f96;' : 'color:var(--color-brand-green);'; ?>"><?php echo $item['stock']; ?> units</strong></span>
+                        <span>Total Stock: <strong style="<?php echo $item['stock'] < 5 ? 'color:#ff9f96;' : 'color:var(--color-brand-green);'; ?> font-size:15px;"><?php echo $item['stock']; ?> units</strong></span>
                     </div>
 
                     <?php if (!empty($item_sizes_map[$item['item_id']])) { ?>
                         <!-- Per-size variant inventory pills -->
-                        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; align-items:center;">
-                            <span class="muted" style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; font-weight:600;">Sizes:</span>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; align-items:center;">
+                            <span class="muted" style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; font-weight:700;">Sizes:</span>
                             <?php foreach ($item_sizes_map[$item['item_id']] as $sz_info) { ?>
-                                <span style="font-size:11px; padding:2px 7px; border-radius:4px; background:rgba(255,255,255,0.06); border:1px solid <?= $sz_info['stock'] > 0 ? 'rgba(255,255,255,0.12)' : 'rgba(255,50,50,0.3)' ?>; <?= $sz_info['stock'] <= 0 ? 'color:#ff6b6b; opacity:0.8;' : '' ?>">
+                                <span style="font-size:12px; font-weight:700; padding:3px 9px; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid <?= $sz_info['stock'] > 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,50,50,0.35)' ?>; <?= $sz_info['stock'] <= 0 ? 'color:#ff6b6b; opacity:0.8;' : '' ?>">
                                     <strong><?= htmlspecialchars($sz_info['size_label']) ?></strong>: <?= (int)$sz_info['stock'] ?>
                                 </span>
                             <?php } ?>
@@ -536,26 +540,26 @@ require '../includes/header.php';
 
                 <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; justify-content:flex-end;">
                     <?php if (!$is_archived_view) { ?>
-                        <a class="btn ghost sm" href="item_edit.php?id=<?php echo $item['item_id']; ?>">Edit</a>
+                        <a class="btn ghost sm" href="item_edit.php?id=<?php echo $item['item_id']; ?>" style="font-size:13px; font-weight:700; padding:6px 14px;">Edit</a>
 
                         <!-- Stock Adjustment Form with Reason & Size Support -->
-                        <form method="POST" action="items.php" style="display:inline-flex; gap:.4rem; align-items:center;">
+                        <form method="POST" action="items.php" style="display:inline-flex; gap:.5rem; align-items:center;">
                             <?= csrf_field() ?>
                             <input type="hidden" name="item_id" value="<?php echo $item['item_id']; ?>">
                             <?php if (!empty($item_sizes_map[$item['item_id']])) { ?>
-                                <select name="size_id" class="search" style="padding:0.4rem 0.5rem; font-size:11px; max-width:7.5rem;">
+                                <select name="size_id" class="search" style="padding:0.5rem 0.6rem; font-size:12.5px; font-weight:600; max-width:8.5rem;">
                                     <?php foreach ($item_sizes_map[$item['item_id']] as $sz_opt) { ?>
                                         <option value="<?= $sz_opt['size_id'] ?>"><?= htmlspecialchars($sz_opt['size_label']) ?> (<?= $sz_opt['stock'] ?>)</option>
                                     <?php } ?>
                                 </select>
                             <?php } ?>
-                            <select name="operation" class="search" style="padding:0.4rem 0.6rem; min-width:4.8rem; font-size:11px;">
+                            <select name="operation" class="search" style="padding:0.5rem 0.65rem; min-width:5.2rem; font-size:12.5px; font-weight:600;">
                                 <option value="add">+ Add</option>
                                 <option value="deduct">- Deduct</option>
                             </select>
-                            <input class="qty" type="number" name="qty_change" placeholder="Qty" min="1" required style="width:4.2rem;">
-                            <input type="text" name="reason" placeholder="Reason (e.g. Restock / Lost)" class="co-input" style="width:11rem; padding:0.4rem 0.6rem; font-size:11px;">
-                            <button class="btn sm" type="submit" name="adjust_stock" style="font-size:10px; padding:0.45rem 0.8rem;">Adjust</button>
+                            <input class="qty" type="number" name="qty_change" placeholder="Qty" min="1" style="width:4.8rem; font-size:13px; font-weight:600;">
+                            <input type="text" name="reason" placeholder="Reason (e.g. Restock / Lost)" class="co-input" style="width:12rem; padding:0.5rem 0.75rem; font-size:12.5px;">
+                            <button class="btn sm" type="submit" name="adjust_stock" style="font-size:12.5px; font-weight:700; padding:0.5rem 1rem;">Adjust</button>
                         </form>
 
                         <!-- Archive / Remove button -->

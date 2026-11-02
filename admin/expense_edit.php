@@ -13,6 +13,10 @@ if (isset($_GET['id'])) {
 }
 
 if (isset($_POST['save'])) {
+    if (!csrf_verify()) {
+        header('Location: expense_edit.php?id=' . $expense_id);
+        exit;
+    }
     $expense_date = $_POST['expense_date'];
     $description = strip_tags(trim($_POST['description']));
     $category = strip_tags(trim($_POST['category']));
@@ -51,6 +55,7 @@ require '../includes/header.php';
 ?>
 <div class="reveal in">
     <form class="form" method="POST" action="expense_edit.php?id=<?php echo $expense_id; ?>">
+        <?= csrf_field() ?>
         <div>
             <div class="hero-eyebrow">[ EDIT DISBURSEMENT ]</div>
             <h1 style="font-size: var(--text-display-m); margin-top:6px;">Edit Expense #<?php echo $expense_id; ?></h1>

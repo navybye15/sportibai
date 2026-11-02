@@ -55,46 +55,46 @@ $total = 0;
         <div class="line">
             <?php item_tile($item, ''); ?>
             <div>
-                <span class="brand-tag" style="font-size:var(--text-label); letter-spacing:var(--tracking-label); text-transform:uppercase; color:var(--color-accent-on-dark); font-weight:600;">
+                <span class="brand-tag" style="font-size:12.5px; letter-spacing:0.8px; text-transform:uppercase; color:var(--color-accent-on-dark); font-weight:700;">
                     <?= htmlspecialchars($item['brand'] != '' ? $item['brand'] : $item['category']) ?>
                 </span>
-                <h2 style="font-size:1.15rem; margin-top:2px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <h2 style="font-size:1.35rem; font-family:var(--font-display); font-weight:800; margin-top:2px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                     <?= htmlspecialchars($item['name']) ?>
                     <?php if ($selected_size !== '') { ?>
-                        <span class="badge" style="background:rgba(255,255,255,0.08); color:var(--color-fg); border:1px solid rgba(255,255,255,0.2); font-size:11px; padding:2px 8px; vertical-align:middle; letter-spacing:0.04em;">
+                        <span class="badge" style="background:rgba(255,255,255,0.08); color:var(--color-fg); border:1px solid rgba(255,255,255,0.22); font-size:13px; font-weight:700; padding:3px 10px; border-radius:6px; vertical-align:middle; letter-spacing:0.04em;">
                             Size: <?= htmlspecialchars($selected_size) ?>
                         </span>
                     <?php } ?>
                 </h2>
-                <span class="muted" style="font-size:var(--text-body-sm)">
-                    <?= peso($item['price']) ?> each &nbsp;•&nbsp; <strong style="color:var(--color-fg)"><?= peso($sub) ?> total</strong>
+                <div class="muted" style="font-size:14.5px; margin-top:4px;">
+                    <span style="font-weight:600;"><?= peso($item['price']) ?></span> each &nbsp;•&nbsp; <strong style="color:var(--color-fg); font-size:15px;"><?= peso($sub) ?> total</strong>
                     <?php if ($selected_size !== '') { ?>
-                        &nbsp;•&nbsp; <span style="font-size:11px; opacity:0.8;"><?= $max_stock ?> in stock (Size <?= htmlspecialchars($selected_size) ?>)</span>
+                        &nbsp;•&nbsp; <span style="font-size:13px; opacity:0.85;"><?= $max_stock ?> in stock (Size <?= htmlspecialchars($selected_size) ?>)</span>
                     <?php } ?>
-                </span>
+                </div>
             </div>
-            <form method="post" action="actions/cart_update.php" style="display:flex; align-items:center; gap:0.5rem;">
+            <form method="post" action="actions/cart_update.php" style="display:flex; align-items:center; gap:0.65rem;">
                 <input type="hidden" name="cart_key" value="<?= htmlspecialchars($cart_key) ?>">
                 <input type="hidden" name="item_id" value="<?= $id ?>">
                 <input type="hidden" name="size" value="<?= htmlspecialchars($selected_size) ?>">
                 <input type="hidden" name="back" value="cart">
-                <input class="qty" type="number" name="qty" min="0" max="<?= $max_stock ?>" value="<?= $qty ?>">
-                <button class="btn ghost sm" type="submit" name="action" value="update">Update</button>
-                <button class="btn ghost sm" type="submit" name="action" value="remove" style="color:#ff9f96; border-color:rgba(255,100,100,0.2);">Remove</button>
+                <input class="qty" type="number" name="qty" min="0" max="<?= $max_stock ?>" value="<?= $qty ?>" style="font-size:15px; font-weight:700; width:5.2rem; padding:0.6rem 0.8rem;">
+                <button class="btn ghost sm" type="submit" name="action" value="update" style="font-size:13px; font-weight:700;">Update</button>
+                <button class="btn ghost sm" type="submit" name="action" value="remove" style="font-size:13px; font-weight:700; color:#ff9f96; border-color:rgba(255,100,100,0.25);">Remove</button>
             </form>
         </div>
     <?php } } ?>
 </section>
 
 <?php if (count($cart) > 0) { ?>
-<div class="total reveal">
+<div class="total reveal" style="padding:2.5rem 0 5rem;">
     <div>
-        <span class="muted" style="font-size:var(--text-label); letter-spacing:var(--tracking-label); text-transform:uppercase;">Order Total</span>
-        <h2 style="font-size: 2rem; color:var(--color-accent-on-dark);"><?= peso($total) ?></h2>
+        <span class="muted" style="font-size:13px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase;">Order Total</span>
+        <h2 style="font-size: 2.6rem; font-family:var(--font-display); font-weight:900; color:var(--color-brand-green); margin-top:2px;"><?= peso($total) ?></h2>
     </div>
-    <div style="display:flex; gap:1rem;">
-        <a class="btn ghost" href="shop.php">Continue Shopping</a>
-        <a class="btn" href="checkout.php">Proceed to Checkout →</a>
+    <div style="display:flex; gap:1rem; align-items:center;">
+        <a class="btn ghost" href="shop.php" style="font-size:14.5px; font-weight:700;">Continue Shopping</a>
+        <a class="btn" href="checkout.php" style="font-size:15px; font-weight:800; padding:0.95rem 2rem; box-shadow:0 0 20px rgba(10,132,255,0.4);">Proceed to Checkout →</a>
     </div>
 </div>
 <?php } ?>

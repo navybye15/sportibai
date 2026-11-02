@@ -172,7 +172,7 @@ $all_link = count(array_filter($keep, fn($k) => $k !== 'cat', ARRAY_FILTER_USE_K
                 <?php $all_cls = ($cat === '') ? 'rail-chip on' : 'rail-chip'; ?>
                 <a class="<?= $all_cls ?>" href="<?= htmlspecialchars($all_link) ?>#shop">
                     <span>All Gear</span>
-                    <span class="muted" style="font-size:10px;"><?= $total_matching ?></span>
+                    <span class="muted" style="font-size:12px; font-weight:700;"><?= $total_matching ?></span>
                 </a>
                 <?php foreach ($categories as $c) {
                     $cls  = ($c === $cat) ? 'rail-chip on' : 'rail-chip';
@@ -210,7 +210,7 @@ $all_link = count(array_filter($keep, fn($k) => $k !== 'cat', ARRAY_FILTER_USE_K
                             <span class="brand-tag"><?= htmlspecialchars($item['brand'] !== '' ? $item['brand'] : $item['category']) ?></span>
                             <h2><?= htmlspecialchars($item['name']) ?></h2>
                             <?php if (!empty($item['description'])) { ?>
-                                <p class="muted" style="font-size:13px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
+                                <p class="muted" style="font-size:14px; line-height:1.6; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
                                     <?= htmlspecialchars($item['description']) ?>
                                 </p>
                             <?php } ?>
@@ -222,10 +222,10 @@ $all_link = count(array_filter($keep, fn($k) => $k !== 'cat', ARRAY_FILTER_USE_K
                         <div class="row">
                             <span class="price"><?= peso($item['price']) ?></span>
                             <?php if ($is_admin) { ?>
-                                <span class="muted" style="font-size:11px; text-transform:uppercase;">Admin view</span>
+                                <span class="muted" style="font-size:12.5px; font-weight:700; text-transform:uppercase;">Admin view</span>
                             <?php } elseif ($item['stock'] > 0) { ?>
                                 <?php if ($has_item_sizes) { ?>
-                                    <a class="btn sm" href="item/detail.php?id=<?= $item['item_id'] ?>">
+                                    <a class="btn sm" href="item/detail.php?id=<?= $item['item_id'] ?>" style="font-size:13.5px; font-weight:700; padding:0.65rem 1.35rem;">
                                         Select Size →
                                     </a>
                                 <?php } else { ?>
@@ -233,11 +233,11 @@ $all_link = count(array_filter($keep, fn($k) => $k !== 'cat', ARRAY_FILTER_USE_K
                                         <input type="hidden" name="action" value="add">
                                         <input type="hidden" name="item_id" value="<?= $item['item_id'] ?>">
                                         <input type="hidden" name="return_url" value="shop.php<?= count($_GET) > 0 ? ('?' . http_build_query($_GET)) : '' ?>#item-<?= $item['item_id'] ?>">
-                                        <button class="btn sm" type="submit">Add to Cart</button>
+                                        <button class="btn sm" type="submit" style="font-size:13.5px; font-weight:700; padding:0.65rem 1.35rem;">Add to Cart</button>
                                     </form>
                                 <?php } ?>
                             <?php } else { ?>
-                                <span class="muted" style="font-size:11px; text-transform:uppercase;">Out of Stock</span>
+                                <span class="muted" style="font-size:12.5px; font-weight:700; text-transform:uppercase; color:#ff6b6b;">Out of Stock</span>
                             <?php } ?>
                         </div>
                     </article>

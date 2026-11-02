@@ -395,6 +395,7 @@ INSERT INTO `order_status_log` (`log_id`, `order_id`, `status`, `changed_at`, `c
 
 CREATE TABLE `reviews` (
   `review_id` int(11) NOT NULL,
+  `order_id` int(11) DEFAULT NULL,
   `item_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `rating` tinyint(4) NOT NULL,
@@ -408,10 +409,10 @@ CREATE TABLE `reviews` (
 -- Dumping data for table `reviews`
 --
 
-INSERT INTO `reviews` (`review_id`, `item_id`, `user_id`, `rating`, `comment`, `review_image`, `created_at`, `updated_at`) VALUES
-(1, 18, 1, 5, 'nice T shirt, it fits very well. Love this store, thank youu.', 'review_6ad314fbeed714.23729949.png,review_6ad314fbef4418.18416455.jpg,review_6ad314fbefa6d0.46080028.png', '2026-10-14 14:20:01', '2026-10-17 06:26:03'),
-(5, 12, 3, 5, 'Thank you po so much nang marami, ako nalang sana, tayo nalang dalawa. sana malaman mo.', 'review_6ad325875e8ea9.39460562.jpg,review_6ad325875eebe2.60791030.jpg,review_6ad325875f4c49.54264558.jpg', '2026-10-17 07:36:39', '2026-10-17 07:36:39'),
-(6, 12, 9, 5, 'super fast, i ordered 2 mins , and now its here !!', NULL, '2026-10-19 00:36:25', '2026-10-19 00:36:25');
+INSERT INTO `reviews` (`review_id`, `order_id`, `item_id`, `user_id`, `rating`, `comment`, `review_image`, `created_at`, `updated_at`) VALUES
+(1, 8, 18, 1, 5, 'nice T shirt, it fits very well. Love this store, thank youu.', 'review_6ad314fbeed714.23729949.png,review_6ad314fbef4418.18416455.jpg,review_6ad314fbefa6d0.46080028.png', '2026-10-14 14:20:01', '2026-10-17 06:26:03'),
+(5, 10, 12, 3, 5, 'Thank you po so much nang marami, ako nalang sana, tayo nalang dalawa. sana malaman mo.', 'review_6ad325875e8ea9.39460562.jpg,review_6ad325875eebe2.60791030.jpg,review_6ad325875f4c49.54264558.jpg', '2026-10-17 07:36:39', '2026-10-17 07:36:39'),
+(6, 12, 12, 9, 5, 'super fast, i ordered 2 mins , and now its here !!', NULL, '2026-10-19 00:36:25', '2026-10-19 00:36:25');
 
 -- --------------------------------------------------------
 
@@ -480,6 +481,7 @@ INSERT INTO `users` (`user_id`, `email`, `password`, `role`, `status`, `profile_
 --
 CREATE TABLE `vw_item_reviews` (
 `review_id` int(11)
+,`order_id` int(11)
 ,`item_id` int(11)
 ,`user_id` int(11)
 ,`rating` tinyint(4)
@@ -490,6 +492,7 @@ CREATE TABLE `vw_item_reviews` (
 ,`user_email` varchar(100)
 ,`user_photo` varchar(255)
 ,`reviewer_name` varchar(50)
+,`purchased_size` varchar(50)
 );
 
 -- --------------------------------------------------------
@@ -528,7 +531,7 @@ CREATE TABLE `vw_order_details` (
 --
 DROP TABLE IF EXISTS `vw_item_reviews`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_item_reviews`  AS SELECT `r`.`review_id` AS `review_id`, `r`.`item_id` AS `item_id`, `r`.`user_id` AS `user_id`, `r`.`rating` AS `rating`, `r`.`comment` AS `comment`, `r`.`review_image` AS `review_image`, `r`.`created_at` AS `created_at`, `r`.`updated_at` AS `updated_at`, `u`.`email` AS `user_email`, `u`.`profile_photo` AS `user_photo`, coalesce(nullif(trim(`c`.`first_name`),''),'Athlete') AS `reviewer_name` FROM ((`reviews` `r` join `users` `u` on(`r`.`user_id` = `u`.`user_id`)) left join `customer` `c` on(`u`.`user_id` = `c`.`user_id`)) ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_item_reviews`  AS SELECT `r`.`review_id` AS `review_id`, `r`.`order_id` AS `order_id`, `r`.`item_id` AS `item_id`, `r`.`user_id` AS `user_id`, `r`.`rating` AS `rating`, `r`.`comment` AS `comment`, `r`.`review_image` AS `review_image`, `r`.`created_at` AS `created_at`, `r`.`updated_at` AS `updated_at`, `u`.`email` AS `user_email`, `u`.`profile_photo` AS `user_photo`, coalesce(nullif(trim(`c`.`first_name`),''),'Athlete') AS `reviewer_name`, `oi`.`selected_size` AS `purchased_size` FROM (((`reviews` `r` join `users` `u` on(`r`.`user_id` = `u`.`user_id`)) left join `customer` `c` on(`u`.`user_id` = `c`.`user_id`)) left join `order_items` `oi` on(`r`.`order_id` = `oi`.`order_id` and `r`.`item_id` = `oi`.`item_id`)) ;
 
 -- --------------------------------------------------------
 
@@ -611,8 +614,10 @@ ALTER TABLE `order_status_log`
 --
 ALTER TABLE `reviews`
   ADD PRIMARY KEY (`review_id`),
-  ADD UNIQUE KEY `uq_item_user_review` (`item_id`,`user_id`),
-  ADD KEY `user_id` (`user_id`);
+  ADD UNIQUE KEY `uq_order_item_review` (`order_id`,`item_id`),
+  ADD KEY `item_id` (`item_id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `order_id` (`order_id`);
 
 --
 -- Indexes for table `stock_log`
@@ -756,7 +761,8 @@ ALTER TABLE `order_status_log`
 --
 ALTER TABLE `reviews`
   ADD CONSTRAINT `reviews_ibfk_1` FOREIGN KEY (`item_id`) REFERENCES `items` (`item_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `reviews_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `reviews_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `reviews_ibfk_3` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `stock_log`

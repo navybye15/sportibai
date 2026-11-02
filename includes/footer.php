@@ -36,9 +36,9 @@
         <div class="footer-col">
             <h4 class="footer-col-title">Contact</h4>
             <ul class="footer-contact-list">
-                <li><span class="f-icon">📍</span> Cebu City, Philippines</li>
-                <li><span class="f-icon">📞</span> +63 917 000 0000</li>
-                <li><span class="f-icon">✉️</span> <a href="mailto:hello@sportibai.ph">hello@sportibai.ph</a></li>
+                <li><span class="f-icon"><?= icon('map-pin', '', 15) ?></span> Cebu City, Philippines</li>
+                <li><span class="f-icon"><?= icon('phone', '', 15) ?></span> +63 917 000 0000</li>
+                <li><span class="f-icon"><?= icon('mail', '', 15) ?></span> <a href="mailto:hello@sportibai.ph">hello@sportibai.ph</a></li>
             </ul>
         </div>
     </div>

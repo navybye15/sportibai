@@ -10,7 +10,7 @@ require_once __DIR__ . '/includes/functions.php';
 // Only logged-in users may access this page
 if (!isset($_SESSION['user_id'])) {
     $_SESSION['message'] = 'Please log in to access your profile.';
-    header('Location: auth/login.php');
+    header('Location: auth/login.php?redirect=profile.php');
     exit;
 }
 
@@ -289,15 +289,15 @@ require_once __DIR__ . '/includes/header.php';
     <?php require __DIR__ . '/includes/alert.php'; ?>
 
     <!-- Modular Profile Tabs -->
-    <div class="order-tabs" style="margin-bottom:1.5rem;">
-        <a href="profile.php?tab=personal<?= $return_to ? '&return=' . urlencode($return_to) : '' ?>" class="order-tab <?= $active_tab === 'personal' ? 'active' : '' ?>">
-            👤 Personal Info
+    <div class="order-tabs" style="margin-bottom:1.75rem;">
+        <a href="profile.php?tab=personal<?= $return_to ? '&return=' . urlencode($return_to) : '' ?>" class="order-tab <?= $active_tab === 'personal' ? 'active' : '' ?>" style="display:inline-flex; align-items:center; gap:8px;">
+            <?= icon('user', '', 16) ?> Personal Info
         </a>
-        <a href="profile.php?tab=address<?= $return_to ? '&return=' . urlencode($return_to) : '' ?>" class="order-tab <?= $active_tab === 'address' ? 'active' : '' ?>">
-            📍 Delivery Address
+        <a href="profile.php?tab=address<?= $return_to ? '&return=' . urlencode($return_to) : '' ?>" class="order-tab <?= $active_tab === 'address' ? 'active' : '' ?>" style="display:inline-flex; align-items:center; gap:8px;">
+            <?= icon('map-pin', '', 16) ?> Delivery Address
         </a>
-        <a href="profile.php?tab=security<?= $return_to ? '&return=' . urlencode($return_to) : '' ?>" class="order-tab <?= $active_tab === 'security' ? 'active' : '' ?>">
-            🔒 Account Security
+        <a href="profile.php?tab=security<?= $return_to ? '&return=' . urlencode($return_to) : '' ?>" class="order-tab <?= $active_tab === 'security' ? 'active' : '' ?>" style="display:inline-flex; align-items:center; gap:8px;">
+            <?= icon('lock', '', 16) ?> Account Security
         </a>
     </div>
 
@@ -311,32 +311,38 @@ require_once __DIR__ . '/includes/header.php';
         <?php } ?>
 
         <?php if (isset($errors['general'])) { ?>
-            <div style="color:#ff9f96; font-size:13px; margin-bottom:1rem;">⚠️ <?= htmlspecialchars($errors['general']) ?></div>
+            <div style="color:#ff9f96; font-size:14px; margin-bottom:1rem; display:flex; align-items:center; gap:6px;">
+                <?= icon('alert-triangle', '', 16) ?> <?= htmlspecialchars($errors['general']) ?>
+            </div>
         <?php } ?>
 
         <?php if ($active_tab === 'personal') { ?>
             <!-- TAB 1: Personal Info & Avatar -->
-            <div class="card in" style="margin-bottom:1.5rem;">
+            <div class="card in" style="margin-bottom:1.5rem; padding:1.5rem;">
                 <div style="display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap;">
-                    <div style="width:84px; height:84px; border-radius:50%; overflow:hidden; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; border:2px solid var(--color-accent-on-dark); flex-shrink:0;">
+                    <div style="width:88px; height:88px; border-radius:50%; overflow:hidden; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; border:2px solid var(--color-accent-on-dark); flex-shrink:0;">
                         <?php if ($user_photo && file_exists(__DIR__ . '/images/uploads/' . $user_photo)) { ?>
                             <img src="images/uploads/<?= htmlspecialchars($user_photo) ?>" alt="Profile" style="width:100%; height:100%; object-fit:cover;">
                         <?php } else { ?>
-                            <span style="font-size:2.5rem;">👤</span>
+                            <span style="color:var(--color-fg-muted);"><?= icon('user', '', 40) ?></span>
                         <?php } ?>
                     </div>
                     <div style="flex:1; min-width:200px;">
-                        <div style="font-size:1.15rem; font-weight:700; color:var(--color-fg);"><?= htmlspecialchars($first_name || $last_name ? "$first_name $last_name" : 'Athlete Member') ?></div>
-                        <div class="muted" style="font-size:13px;"><?= htmlspecialchars($user_email) ?></div>
+                        <div style="font-size:1.3rem; font-weight:700; color:var(--color-fg);"><?= htmlspecialchars($first_name || $last_name ? "$first_name $last_name" : 'Athlete Member') ?></div>
+                        <div class="muted" style="font-size:14px; margin-top:2px;"><?= htmlspecialchars($user_email) ?></div>
                         
-                        <div style="margin-top:0.75rem;">
+                        <div style="margin-top:0.85rem;">
                             <input type="file" name="profile_photo" id="profile_photo_file" accept=".jpg,.jpeg,.png,.webp" style="display:none;" onchange="document.getElementById('photo_file_name').innerText = this.files[0] ? this.files[0].name : '';">
-                            <button type="button" class="btn ghost sm" onclick="document.getElementById('profile_photo_file').click();">📷 Change Profile Photo</button>
-                            <span id="photo_file_name" class="muted" style="font-size:12px; margin-left:8px;"></span>
+                            <button type="button" class="btn ghost sm" onclick="document.getElementById('profile_photo_file').click();" style="display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:700;">
+                                <?= icon('camera', '', 15) ?> Change Profile Photo
+                            </button>
+                            <span id="photo_file_name" class="muted" style="font-size:13px; margin-left:8px;"></span>
                         </div>
-                        <span class="muted" style="font-size:11px; display:block; margin-top:4px;">JPG, PNG, or WEBP (Max 10MB)</span>
+                        <span class="muted" style="font-size:12px; display:block; margin-top:5px;">JPG, PNG, or WEBP (Max 10MB)</span>
                         <?php if (isset($errors['profile_photo'])) { ?>
-                            <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors['profile_photo']) ?></div>
+                            <div style="color:#ff9f96; font-size:13px; margin-top:5px; display:flex; align-items:center; gap:5px;">
+                                <?= icon('alert-triangle', '', 14) ?> <?= htmlspecialchars($errors['profile_photo']) ?>
+                            </div>
                         <?php } ?>
                     </div>
                 </div>
@@ -346,14 +352,20 @@ require_once __DIR__ . '/includes/header.php';
                         <label class="form-label">First Name</label>
                         <input type="text" name="first_name" placeholder="First name" value="<?php echo htmlspecialchars($first_name); ?>" style="margin-top:0.5rem; <?= isset($errors['first_name']) ? 'border-color:#ff6b6b;' : '' ?>">
                         <?php if (isset($errors['first_name'])) { ?>
-                            <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors['first_name']) ?></div>
+                            <div style="color:#ff9f96; font-size:13px; margin-top:5px; display:flex; align-items:center; gap:5px; font-weight:600;">
+                                <?= icon('alert-triangle', '', 14) ?>
+                                <span><?= htmlspecialchars($errors['first_name']) ?></span>
+                            </div>
                         <?php } ?>
                     </div>
                     <div>
                         <label class="form-label">Last Name</label>
                         <input type="text" name="last_name" placeholder="Last name" value="<?php echo htmlspecialchars($last_name); ?>" style="margin-top:0.5rem; <?= isset($errors['last_name']) ? 'border-color:#ff6b6b;' : '' ?>">
                         <?php if (isset($errors['last_name'])) { ?>
-                            <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors['last_name']) ?></div>
+                            <div style="color:#ff9f96; font-size:13px; margin-top:5px; display:flex; align-items:center; gap:5px; font-weight:600;">
+                                <?= icon('alert-triangle', '', 14) ?>
+                                <span><?= htmlspecialchars($errors['last_name']) ?></span>
+                            </div>
                         <?php } ?>
                     </div>
                 </div>
@@ -362,7 +374,10 @@ require_once __DIR__ . '/includes/header.php';
                     <label class="form-label">Contact Mobile Number (11-digit PH mobile)</label>
                     <input type="text" name="phone" placeholder="09171234567" value="<?php echo htmlspecialchars($phone); ?>" style="margin-top:0.5rem; <?= isset($errors['phone']) ? 'border-color:#ff6b6b;' : '' ?>">
                     <?php if (isset($errors['phone'])) { ?>
-                        <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors['phone']) ?></div>
+                        <div style="color:#ff9f96; font-size:13px; margin-top:5px; display:flex; align-items:center; gap:5px; font-weight:600;">
+                            <?= icon('alert-triangle', '', 14) ?>
+                            <span><?= htmlspecialchars($errors['phone']) ?></span>
+                        </div>
                     <?php } ?>
                 </div>
 
@@ -387,7 +402,10 @@ require_once __DIR__ . '/includes/header.php';
                     <label class="form-label">Street Address / House No. / Barangay</label>
                     <input type="text" name="address" placeholder="e.g. 123 Mabini St., Brgy. Lahug" value="<?php echo htmlspecialchars($address); ?>" style="margin-top:0.5rem; <?= isset($errors['address']) ? 'border-color:#ff6b6b;' : '' ?>">
                     <?php if (isset($errors['address'])) { ?>
-                        <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors['address']) ?></div>
+                        <div style="color:#ff9f96; font-size:13px; margin-top:5px; display:flex; align-items:center; gap:5px; font-weight:600;">
+                            <?= icon('alert-triangle', '', 14) ?>
+                            <span><?= htmlspecialchars($errors['address']) ?></span>
+                        </div>
                     <?php } ?>
                 </div>
 
@@ -431,14 +449,18 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
 
                 <?php if (isset($password_errors['general'])) { ?>
-                    <div style="color:#ff9f96; font-size:13px; margin:0.75rem 0;">⚠️ <?= htmlspecialchars($password_errors['general']) ?></div>
+                    <div style="color:#ff9f96; font-size:13px; margin:0.75rem 0; display:flex; align-items:center; gap:5px;">
+                        <?= icon('alert-triangle', '', 14) ?> <?= htmlspecialchars($password_errors['general']) ?>
+                    </div>
                 <?php } ?>
 
                 <div style="margin-top:1.25rem;">
                     <label class="form-label">Current Password</label>
                     <input type="password" name="current_password" placeholder="Enter current password" autocomplete="current-password" style="margin-top:0.5rem; <?= isset($password_errors['current_password']) ? 'border-color:#ff6b6b;' : '' ?>">
                     <?php if (isset($password_errors['current_password'])) { ?>
-                        <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($password_errors['current_password']) ?></div>
+                        <div style="color:#ff9f96; font-size:12px; margin-top:4px; display:flex; align-items:center; gap:5px;">
+                            <?= icon('alert-triangle', '', 14) ?> <?= htmlspecialchars($password_errors['current_password']) ?>
+                        </div>
                     <?php } ?>
                 </div>
 
@@ -446,7 +468,9 @@ require_once __DIR__ . '/includes/header.php';
                     <label class="form-label">New Password</label>
                     <input type="password" name="new_password" placeholder="Enter new password (min. 6 characters)" autocomplete="new-password" style="margin-top:0.5rem; <?= isset($password_errors['new_password']) ? 'border-color:#ff6b6b;' : '' ?>">
                     <?php if (isset($password_errors['new_password'])) { ?>
-                        <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($password_errors['new_password']) ?></div>
+                        <div style="color:#ff9f96; font-size:12px; margin-top:4px; display:flex; align-items:center; gap:5px;">
+                            <?= icon('alert-triangle', '', 14) ?> <?= htmlspecialchars($password_errors['new_password']) ?>
+                        </div>
                     <?php } ?>
                 </div>
 
@@ -454,7 +478,9 @@ require_once __DIR__ . '/includes/header.php';
                     <label class="form-label">Confirm New Password</label>
                     <input type="password" name="confirm_password" placeholder="Re-enter new password" autocomplete="new-password" style="margin-top:0.5rem; <?= isset($password_errors['confirm_password']) ? 'border-color:#ff6b6b;' : '' ?>">
                     <?php if (isset($password_errors['confirm_password'])) { ?>
-                        <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($password_errors['confirm_password']) ?></div>
+                        <div style="color:#ff9f96; font-size:12px; margin-top:4px; display:flex; align-items:center; gap:5px;">
+                            <?= icon('alert-triangle', '', 14) ?> <?= htmlspecialchars($password_errors['confirm_password']) ?>
+                        </div>
                     <?php } ?>
                 </div>
 

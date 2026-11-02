@@ -69,19 +69,19 @@ require '../includes/header.php';
     <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1.25rem; margin-bottom:2rem;">
         <div>
             <div class="hero-eyebrow" style="color:var(--color-brand-red);">[ STORE COMMAND CENTER ]</div>
-            <h1 style="font-size:clamp(26px, 3.5vw, 42px); font-weight:800; color:#fff; line-height:1.15; margin:4px 0 6px;">
-                Welcome back, <span class="highlight"><?= htmlspecialchars(explode('@', $_SESSION['email'])[0]) ?></span> 👋
+            <h1 style="font-size:clamp(26px, 3.5vw, 42px); font-weight:800; color:#fff; line-height:1.15; margin:4px 0 6px; font-family:var(--font-display);">
+                Welcome back, <span class="highlight"><?= htmlspecialchars(explode('@', $_SESSION['email'])[0]) ?></span>
             </h1>
-            <p class="muted" style="font-size:14px; margin:0;">
+            <p class="muted" style="font-size:15px; margin:0;">
                 Overview of real-time store inventory, customer orders, and monthly revenue performance.
             </p>
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <a href="items.php#add" class="btn sm" style="box-shadow:0 0 16px rgba(10,132,255,0.35);">+ Add New Item</a>
-            <a href="orders.php?tab=Pending" class="btn ghost sm">
+            <a href="items.php#add" class="btn sm" style="box-shadow:0 0 16px rgba(10,132,255,0.35); font-size:13.5px; font-weight:700;">+ Add New Item</a>
+            <a href="orders.php?tab=Pending" class="btn ghost sm" style="font-size:13.5px; font-weight:700;">
                 Review Orders <?= $pending_orders > 0 ? "($pending_orders)" : '' ?>
             </a>
-            <a href="../index.php" target="_blank" class="btn ghost sm">View Storefront ↗</a>
+            <a href="../index.php" target="_blank" class="btn ghost sm" style="font-size:13.5px; font-weight:700;">View Storefront ↗</a>
         </div>
     </div>
 
@@ -93,7 +93,9 @@ require '../includes/header.php';
         <div class="admin-kpi-card">
             <div class="kpi-header">
                 <span class="kpi-label">Revenue This Month</span>
-                <span class="kpi-icon" style="background:rgba(48,209,88,0.15); color:var(--color-brand-green);">₱</span>
+                <span class="kpi-icon" style="background:rgba(48,209,88,0.15); color:var(--color-brand-green);">
+                    <?= icon('trending-up', '', 18) ?>
+                </span>
             </div>
             <div class="kpi-value" style="color:var(--color-brand-green);">
                 <?= peso($month_revenue) ?>
@@ -107,7 +109,9 @@ require '../includes/header.php';
         <div class="admin-kpi-card <?= $pending_orders > 0 ? 'kpi-highlight-alert' : '' ?>">
             <div class="kpi-header">
                 <span class="kpi-label">Pending Orders</span>
-                <span class="kpi-icon" style="background:rgba(224,35,28,0.15); color:var(--color-brand-red);">📦</span>
+                <span class="kpi-icon" style="background:rgba(224,35,28,0.15); color:var(--color-brand-red);">
+                    <?= icon('package', '', 18) ?>
+                </span>
             </div>
             <div class="kpi-value" style="color:<?= $pending_orders > 0 ? 'var(--color-brand-red)' : '#fff' ?>;">
                 <?= $pending_orders ?>
@@ -125,7 +129,9 @@ require '../includes/header.php';
         <div class="admin-kpi-card">
             <div class="kpi-header">
                 <span class="kpi-label">Catalog Products</span>
-                <span class="kpi-icon" style="background:rgba(10,132,255,0.15); color:var(--color-accent-on-dark);">🏷️</span>
+                <span class="kpi-icon" style="background:rgba(10,132,255,0.15); color:var(--color-accent-on-dark);">
+                    <?= icon('tag', '', 18) ?>
+                </span>
             </div>
             <div class="kpi-value" style="color:#fff;">
                 <?= $total_items ?>
@@ -139,7 +145,9 @@ require '../includes/header.php';
         <div class="admin-kpi-card">
             <div class="kpi-header">
                 <span class="kpi-label">Active Customers</span>
-                <span class="kpi-icon" style="background:rgba(255,180,50,0.15); color:#ffd166;">👥</span>
+                <span class="kpi-icon" style="background:rgba(255,180,50,0.15); color:#ffd166;">
+                    <?= icon('users', '', 18) ?>
+                </span>
             </div>
             <div class="kpi-value" style="color:#fff;">
                 <?= number_format($active_customers) ?>
@@ -186,23 +194,23 @@ require '../includes/header.php';
                                 ?>
                                     <tr>
                                         <td>
-                                            <a href="orders.php?q=<?= urlencode($ro['reference_number']) ?>" style="font-weight:700; color:#fff; font-family:var(--font-mono); font-size:13px;">
+                                            <a href="orders.php?q=<?= urlencode($ro['reference_number']) ?>" style="font-weight:700; color:#fff; font-family:var(--font-mono); font-size:14.5px;">
                                                 #<?= $ro['order_id'] ?>
                                             </a>
-                                            <div class="muted" style="font-size:10px;"><?= date('M d, g:i A', strtotime($ro['date_ordered'])) ?></div>
+                                            <div class="muted" style="font-size:12px;"><?= date('M d, g:i A', strtotime($ro['date_ordered'])) ?></div>
                                         </td>
                                         <td>
-                                            <div style="font-weight:600; color:#fff;">
+                                            <div style="font-weight:700; color:#fff; font-size:14.5px;">
                                                 <?= htmlspecialchars(trim($ro['first_name'] . ' ' . $ro['last_name']) ?: 'Guest User') ?>
                                             </div>
                                         </td>
                                         <td>
-                                            <span style="font-size:11px; text-transform:uppercase; color:var(--color-fg-secondary); font-weight:600;">
-                                                <?= $ro['order_type'] === 'pickup' ? '🏬 Pick Up' : '🚚 Delivery' ?>
+                                            <span style="font-size:12.5px; text-transform:uppercase; color:var(--color-fg-secondary); font-weight:700; display:inline-flex; align-items:center; gap:5px;">
+                                                <?= $ro['order_type'] === 'pickup' ? icon('store', '', 14) . ' Pick Up' : icon('truck', '', 14) . ' Delivery' ?>
                                             </span>
                                         </td>
                                         <td>
-                                            <strong style="color:var(--color-brand-green); font-size:13px;"><?= peso($ro['total']) ?></strong>
+                                            <strong style="color:var(--color-brand-green); font-size:15px; font-family:var(--font-display);"><?= peso($ro['total']) ?></strong>
                                         </td>
                                         <td>
                                             <span class="status-badge" style="<?php
@@ -210,13 +218,13 @@ require '../includes/header.php';
                                                 elseif ($ro['status'] === 'Cancelled') echo 'background:rgba(255,70,70,0.15); color:#ff6b6b; border-color:rgba(255,70,70,0.3);';
                                                 elseif ($ro['status'] === 'Pending') echo 'background:rgba(224,35,28,0.2); color:var(--color-brand-red); border-color:rgba(224,35,28,0.4); font-weight:800;';
                                                 else echo 'background:rgba(10,132,255,0.15); color:var(--color-accent-on-dark); border-color:rgba(10,132,255,0.3);';
-                                            ?> font-size:11px; padding:3px 8px;">
+                                            ?> font-size:12px; padding:4px 10px; font-weight:700;">
                                                 <?= htmlspecialchars($ro['status']) ?>
                                             </span>
                                         </td>
                                         <td style="text-align:right;">
-                                            <a href="orders.php?q=<?= urlencode($ro['reference_number']) ?>" class="btn ghost sm" style="font-size:11px; padding:3px 8px;">
-                                                <?= $is_pending ? '⚡ Process' : 'Details' ?>
+                                            <a href="orders.php?q=<?= urlencode($ro['reference_number']) ?>" class="btn ghost sm" style="font-size:12.5px; padding:5px 12px; font-weight:700; display:inline-flex; align-items:center; gap:5px;">
+                                                <?= $is_pending ? icon('arrow-right', '', 14) . ' Process' : 'Details' ?>
                                             </a>
                                         </td>
                                     </tr>
@@ -240,7 +248,9 @@ require '../includes/header.php';
                 </div>
                 <div class="quick-nav-list">
                     <a href="items.php" class="quick-nav-item">
-                        <span class="quick-icon">📦</span>
+                        <span class="quick-icon" style="background:rgba(10,132,255,0.14); color:#64b5f6;">
+                            <?= icon('package', '', 20) ?>
+                        </span>
                         <div>
                             <div class="quick-title">Product Inventory</div>
                             <div class="quick-desc">Manage sizes, stock, variants & pricing</div>
@@ -248,7 +258,9 @@ require '../includes/header.php';
                         <span class="quick-arrow">→</span>
                     </a>
                     <a href="sales_report.php" class="quick-nav-item">
-                        <span class="quick-icon">📊</span>
+                        <span class="quick-icon" style="background:rgba(48,209,88,0.14); color:#30d158;">
+                            <?= icon('trending-up', '', 20) ?>
+                        </span>
                         <div>
                             <div class="quick-title">Sales & Financials</div>
                             <div class="quick-desc">Net profit, margins & daily revenue</div>
@@ -256,7 +268,9 @@ require '../includes/header.php';
                         <span class="quick-arrow">→</span>
                     </a>
                     <a href="expenses.php" class="quick-nav-item">
-                        <span class="quick-icon">💸</span>
+                        <span class="quick-icon" style="background:rgba(255,180,50,0.14); color:#ffd166;">
+                            <?= icon('banknote', '', 20) ?>
+                        </span>
                         <div>
                             <div class="quick-title">Store Expenses</div>
                             <div class="quick-desc">Record rent, freight, inventory & utility bills</div>
@@ -264,7 +278,9 @@ require '../includes/header.php';
                         <span class="quick-arrow">→</span>
                     </a>
                     <a href="categories.php" class="quick-nav-item">
-                        <span class="quick-icon">🏷️</span>
+                        <span class="quick-icon" style="background:rgba(175,82,222,0.14); color:#bf5af2;">
+                            <?= icon('tag', '', 20) ?>
+                        </span>
                         <div>
                             <div class="quick-title">Taxonomy & Categories</div>
                             <div class="quick-desc">Manage sports gear classifications</div>
@@ -272,7 +288,9 @@ require '../includes/header.php';
                         <span class="quick-arrow">→</span>
                     </a>
                     <a href="users.php" class="quick-nav-item">
-                        <span class="quick-icon">👥</span>
+                        <span class="quick-icon" style="background:rgba(100,210,255,0.14); color:#70d7ff;">
+                            <?= icon('users', '', 20) ?>
+                        </span>
                         <div>
                             <div class="quick-title">User Accounts</div>
                             <div class="quick-desc">Admin roles, customer accounts & status</div>
@@ -300,20 +318,20 @@ require '../includes/header.php';
                                         <?php if (!empty($lsi['image']) && file_exists(__DIR__ . '/../images/uploads/' . basename($lsi['image']))) { ?>
                                             <img src="../images/uploads/<?= htmlspecialchars(basename($lsi['image'])) ?>" alt="Thumbnail">
                                         <?php } else { ?>
-                                            <span>🏀</span>
+                                            <span style="display:flex; align-items:center; justify-content:center; color:var(--color-fg-muted);"><?= icon('package', '', 18) ?></span>
                                         <?php } ?>
                                     </div>
                                     <div>
-                                        <div style="font-size:13px; font-weight:700; color:#fff;"><?= htmlspecialchars($lsi['name']) ?></div>
-                                        <div class="muted" style="font-size:11px;"><?= htmlspecialchars($lsi['brand'] ?: 'Sportibai') ?> • <?= peso($lsi['price']) ?></div>
+                                        <div style="font-size:14.5px; font-weight:700; color:#fff;"><?= htmlspecialchars($lsi['name']) ?></div>
+                                        <div class="muted" style="font-size:12.5px;"><?= htmlspecialchars($lsi['brand'] ?: 'Sportibai') ?> • <?= peso($lsi['price']) ?></div>
                                     </div>
                                 </div>
                                 <div style="text-align:right;">
-                                    <span class="status-badge <?= $lsi['stock'] == 0 ? 'badge-out' : 'badge-low' ?>" style="font-size:11px; padding:3px 8px;">
+                                    <span class="status-badge <?= $lsi['stock'] == 0 ? 'badge-out' : 'badge-low' ?>" style="font-size:12px; padding:4px 9px;">
                                         <?= $lsi['stock'] == 0 ? 'Out of Stock' : $lsi['stock'] . ' left' ?>
                                     </span>
-                                    <div style="margin-top:4px;">
-                                        <a href="item_edit.php?id=<?= $lsi['item_id'] ?>" style="font-size:11px; color:var(--color-accent-on-dark); font-weight:600;">Edit & Restock →</a>
+                                    <div style="margin-top:5px;">
+                                        <a href="item_edit.php?id=<?= $lsi['item_id'] ?>" style="font-size:12.5px; color:var(--color-accent-on-dark); font-weight:700; text-decoration:none;">Edit & Restock →</a>
                                     </div>
                                 </div>
                             </div>
@@ -427,19 +445,20 @@ require '../includes/header.php';
 .dashboard-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 14.5px;
 }
 .dashboard-table th {
-    padding: 8px 10px;
+    padding: 10px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--color-muted);
-    font-size: 11px;
+    font-size: 12px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
     text-align: left;
 }
 .dashboard-table td {
-    padding: 12px 10px;
+    padding: 14px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 .dashboard-table tr:hover td {
@@ -448,16 +467,16 @@ require '../includes/header.php';
 .quick-nav-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 .quick-nav-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
+    gap: 14px;
+    padding: 12px 16px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
+    border-radius: 14px;
     text-decoration: none;
     color: inherit;
     transition: all 0.18s ease;
@@ -468,20 +487,27 @@ require '../includes/header.php';
     transform: translateX(3px);
 }
 .quick-icon {
-    font-size: 1.25rem;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
 }
 .quick-title {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
     color: #fff;
+    margin-bottom: 2px;
 }
 .quick-desc {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--color-fg-secondary);
 }
 .quick-arrow {
     margin-left: auto;
+    font-size: 18px;
     font-weight: 800;
     color: var(--color-accent-on-dark);
     opacity: 0.6;

@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/icons.php';
+
 function get_all_items($conn) {
     if ($conn == null) {
         include __DIR__ . '/sample_data.php';

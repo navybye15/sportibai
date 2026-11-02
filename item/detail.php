@@ -51,55 +51,115 @@ if (isset($_POST['submit_review'])) {
         }
     }
 
-    // Eligibility check: Customer can only review a product they availed (order status = Completed)
-    $verify_sql = "SELECT oi.order_item_id 
-                   FROM order_items oi
-                   JOIN orders o ON oi.order_id = o.order_id
-                   JOIN customer c ON o.customer_id = c.customer_id
-                   WHERE c.user_id = ? AND oi.item_id = ? AND o.status = 'Completed'
-                   LIMIT 1";
-    $v_res = mysqli_execute_query($conn, $verify_sql, array($_SESSION['user_id'], $id));
-    if (mysqli_num_rows($v_res) == 0) {
+    // Determine target order_id
+    $submitted_order_id = (int)($_POST['order_id'] ?? 0);
+    $target_order_id = 0;
+
+    if ($submitted_order_id > 0) {
+        $v_sql = "SELECT o.order_id 
+                  FROM orders o
+                  JOIN customer c ON o.customer_id = c.customer_id
+                  JOIN order_items oi ON o.order_id = oi.order_id
+                  WHERE c.user_id = ? AND o.order_id = ? AND oi.item_id = ? AND o.status = 'Completed'
+                  LIMIT 1";
+        $v_res = mysqli_execute_query($conn, $v_sql, array($_SESSION['user_id'], $submitted_order_id, $id));
+        if ($v_row = mysqli_fetch_assoc($v_res)) {
+            $target_order_id = (int)$v_row['order_id'];
+        }
+    }
+
+    // Fallback if not specified: find unreviewed completed order first, else latest completed order
+    if ($target_order_id === 0) {
+        $v_sql = "SELECT o.order_id 
+                  FROM orders o
+                  JOIN customer c ON o.customer_id = c.customer_id
+                  JOIN order_items oi ON o.order_id = oi.order_id
+                  LEFT JOIN reviews r ON o.order_id = r.order_id AND r.item_id = oi.item_id
+                  WHERE c.user_id = ? AND oi.item_id = ? AND o.status = 'Completed'
+                  ORDER BY (r.review_id IS NULL) DESC, o.order_id DESC
+                  LIMIT 1";
+        $v_res = mysqli_execute_query($conn, $v_sql, array($_SESSION['user_id'], $id));
+        if ($v_row = mysqli_fetch_assoc($v_res)) {
+            $target_order_id = (int)$v_row['order_id'];
+        }
+    }
+
+    if ($target_order_id === 0) {
         $_SESSION['message'] = 'Only customers who have completed an order for this item may submit a review.';
         header("Location: detail.php?id=$id");
         exit;
     }
 
-    // MP4: User can update their review (ON DUPLICATE KEY UPDATE)
+    // MP4: User can update their review for this order (ON DUPLICATE KEY UPDATE)
     if ($review_image !== '') {
-        $review_sql = "INSERT INTO reviews (item_id, user_id, rating, comment, review_image) 
-                       VALUES (?, ?, ?, ?, ?)
+        $review_sql = "INSERT INTO reviews (order_id, item_id, user_id, rating, comment, review_image) 
+                       VALUES (?, ?, ?, ?, ?, ?)
                        ON DUPLICATE KEY UPDATE rating = VALUES(rating), comment = VALUES(comment), review_image = VALUES(review_image), updated_at = CURRENT_TIMESTAMP";
-        mysqli_execute_query($conn, $review_sql, array($id, $_SESSION['user_id'], $rating, $comment, $review_image));
+        mysqli_execute_query($conn, $review_sql, array($target_order_id, $id, $_SESSION['user_id'], $rating, $comment, $review_image));
     } else {
-        $review_sql = "INSERT INTO reviews (item_id, user_id, rating, comment) 
-                       VALUES (?, ?, ?, ?)
+        $review_sql = "INSERT INTO reviews (order_id, item_id, user_id, rating, comment) 
+                       VALUES (?, ?, ?, ?, ?)
                        ON DUPLICATE KEY UPDATE rating = VALUES(rating), comment = VALUES(comment), updated_at = CURRENT_TIMESTAMP";
-        mysqli_execute_query($conn, $review_sql, array($id, $_SESSION['user_id'], $rating, $comment));
+        mysqli_execute_query($conn, $review_sql, array($target_order_id, $id, $_SESSION['user_id'], $rating, $comment));
     }
 
     $_SESSION['success'] = 'Your review has been published. Thank you!';
-    header("Location: detail.php?id=$id#reviews");
+    header("Location: detail.php?id=$id&order_id=$target_order_id#reviews");
     exit;
 }
 
-// Check if current user is eligible to review and if they already have one
+// Check if current user is eligible to review and determine targeted order
 $user_can_review = false;
 $user_existing_review = null;
+$target_order = null;
+$eligible_orders = array();
+
 if (isset($_SESSION['user_id']) && $conn != null) {
-    $verify_sql = "SELECT oi.order_item_id 
-                   FROM order_items oi
-                   JOIN orders o ON oi.order_id = o.order_id
+    $orders_sql = "SELECT o.order_id, o.reference_number, o.date_ordered, oi.selected_size,
+                          r.review_id, r.rating, r.comment, r.review_image, r.created_at AS review_date
+                   FROM orders o
                    JOIN customer c ON o.customer_id = c.customer_id
+                   JOIN order_items oi ON o.order_id = oi.order_id
+                   LEFT JOIN reviews r ON o.order_id = r.order_id AND r.item_id = oi.item_id
                    WHERE c.user_id = ? AND oi.item_id = ? AND o.status = 'Completed'
-                   LIMIT 1";
-    $v_res = mysqli_execute_query($conn, $verify_sql, array($_SESSION['user_id'], $id));
-    if (mysqli_num_rows($v_res) > 0) {
-        $user_can_review = true;
+                   ORDER BY o.order_id DESC";
+    $ord_res = mysqli_execute_query($conn, $orders_sql, array($_SESSION['user_id'], $id));
+    while ($orw = mysqli_fetch_assoc($ord_res)) {
+        $eligible_orders[(int)$orw['order_id']] = $orw;
     }
 
-    $ex_res = mysqli_execute_query($conn, "SELECT * FROM reviews WHERE item_id = ? AND user_id = ? LIMIT 1", array($id, $_SESSION['user_id']));
-    $user_existing_review = mysqli_fetch_assoc($ex_res);
+    if (count($eligible_orders) > 0) {
+        $user_can_review = true;
+
+        $req_order_id = isset($_GET['order_id']) ? (int)$_GET['order_id'] : 0;
+        if ($req_order_id > 0 && isset($eligible_orders[$req_order_id])) {
+            $target_order = $eligible_orders[$req_order_id];
+        } else {
+            // Prioritize an order that has not been reviewed yet
+            foreach ($eligible_orders as $eo) {
+                if ($eo['review_id'] === null) {
+                    $target_order = $eo;
+                    break;
+                }
+            }
+            if ($target_order === null) {
+                $target_order = reset($eligible_orders);
+            }
+        }
+
+        if ($target_order && $target_order['review_id'] !== null) {
+            $user_existing_review = array(
+                'review_id'    => $target_order['review_id'],
+                'order_id'     => $target_order['order_id'],
+                'item_id'      => $id,
+                'user_id'      => $_SESSION['user_id'],
+                'rating'       => $target_order['rating'],
+                'comment'      => $target_order['comment'],
+                'review_image' => $target_order['review_image'],
+                'created_at'   => $target_order['review_date']
+            );
+        }
+    }
 }
 
 // ── Fetch Multi-photos (MP1 Requirement: Multiple Photos) ───────────────────
@@ -166,7 +226,10 @@ require '../includes/header.php';
                             </button>
                         <?php } ?>
                     </div>
-                    <small class="muted" style="font-size:11px;">💡 Click any thumbnail to switch angles</small>
+                    <div class="muted" style="font-size:13px; display:inline-flex; align-items:center; gap:6px; margin-top:6px;">
+                        <?= sporti_icon('info', 14, 14) ?>
+                        <span>Click any thumbnail to switch angles</span>
+                    </div>
                 <?php } ?>
             </div>
         <?php } else { ?>
@@ -176,14 +239,14 @@ require '../includes/header.php';
 
     <!-- Product Info Stack -->
     <div class="stack reveal">
-        <span class="brand-tag" style="font-size:var(--text-label); letter-spacing:var(--tracking-label-wide); text-transform:uppercase; color:var(--color-accent-on-dark); font-weight:600;">
+        <span class="brand-tag" style="font-size:13px; letter-spacing:0.8px; text-transform:uppercase; color:var(--color-accent-on-dark); font-weight:700;">
             <?= htmlspecialchars($item['brand'] != '' ? $item['brand'] : $item['category']) ?>
         </span>
-        <h1 style="font-size: var(--text-display-l); line-height: 1.1;"><?= htmlspecialchars($item['name']) ?></h1>
+        <h1 style="font-size:clamp(2rem, 3.5vw, 2.75rem); line-height: 1.15; font-family:var(--font-display); font-weight:800;"><?= htmlspecialchars($item['name']) ?></h1>
         
         <!-- Ratings summary banner -->
-        <div style="display:flex; align-items:center; gap:8px; margin-top:2px;">
-            <span style="color:#f59e0b; font-size:16px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+            <span style="color:#f59e0b; font-size:18px;">
                 <?php
                 $full = floor($avg_rating);
                 for ($s = 1; $s <= 5; $s++) {
@@ -191,31 +254,31 @@ require '../includes/header.php';
                 }
                 ?>
             </span>
-            <span style="font-weight:600; font-size:14px;"><?= $avg_rating > 0 ? $avg_rating : 'New' ?></span>
-            <span class="muted" style="font-size:12px;">(<?= $total_reviews ?> <?= $total_reviews == 1 ? 'review' : 'reviews' ?>)</span>
-            <a href="#reviews" style="font-size:12px; color:var(--color-accent-on-dark); margin-left:6px;">View Reviews ↓</a>
+            <span style="font-weight:700; font-size:15px;"><?= $avg_rating > 0 ? $avg_rating : 'New' ?></span>
+            <span class="muted" style="font-size:13.5px;">(<?= $total_reviews ?> <?= $total_reviews == 1 ? 'review' : 'reviews' ?>)</span>
+            <a href="#reviews" style="font-size:13.5px; color:var(--color-accent-on-dark); margin-left:6px; font-weight:600;">View Reviews ↓</a>
         </div>
 
-        <div class="price" style="margin-top:0.5rem;"><?= peso($item['price']) ?></div>
+        <div class="price" style="margin-top:0.75rem; font-size:2.2rem; font-family:var(--font-display); font-weight:900; color:var(--color-brand-green);"><?= peso($item['price']) ?></div>
         
         <?php if (isset($item['description']) && $item['description'] != '') { ?>
-            <p class="muted" style="line-height:1.7; font-size:var(--text-body);"><?= htmlspecialchars($item['description']) ?></p>
+            <p class="muted" style="line-height:1.7; font-size:15px;"><?= htmlspecialchars($item['description']) ?></p>
         <?php } ?>
 
-        <div style="padding: 1rem 0; border-top: var(--hairline) solid var(--color-border); border-bottom: var(--hairline) solid var(--color-border); display:flex; align-items:center; justify-content:space-between;">
-            <span class="muted" style="font-size:var(--text-body-sm)">Availability</span>
+        <div style="padding: 1.1rem 0; border-top: var(--hairline) solid var(--color-border); border-bottom: var(--hairline) solid var(--color-border); display:flex; align-items:center; justify-content:space-between;">
+            <span class="muted" style="font-size:14.5px;">Availability</span>
             <?php if ($item['stock'] > 0) { ?>
-                <span style="color:var(--color-brand-green); font-weight:600; font-size:var(--text-body-sm); display:flex; align-items:center; gap:6px;">
-                    <span style="width:6px; height:6px; border-radius:50%; background:var(--color-brand-green); display:inline-block;"></span>
+                <span style="color:var(--color-brand-green); font-weight:700; font-size:15px; display:flex; align-items:center; gap:8px;">
+                    <span style="width:8px; height:8px; border-radius:50%; background:var(--color-brand-green); display:inline-block; box-shadow:0 0 10px rgba(48,209,88,0.6);"></span>
                     <?= $item['stock'] ?> in stock
                 </span>
             <?php } else { ?>
-                <span class="muted" style="font-size:var(--text-body-sm)">Out of stock</span>
+                <span class="muted" style="font-size:14.5px; font-weight:600; color:#ff6b6b;">Out of stock</span>
             <?php } ?>
         </div>
 
         <?php if ($item['stock'] > 0) { ?>
-            <form method="post" action="../actions/cart_update.php" id="add-to-cart-form" style="margin-top:1rem;">
+            <form method="post" action="../actions/cart_update.php" id="add-to-cart-form" style="margin-top:1.25rem;">
                 <input type="hidden" name="action" value="add">
                 <input type="hidden" name="item_id" value="<?= $item['item_id'] ?>">
                 <input type="hidden" name="size" id="selected-size-input" value="">
@@ -223,12 +286,12 @@ require '../includes/header.php';
 
                 <?php if ($has_sizes) { ?>
                     <div class="size-selector-block">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                            <label style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--color-fg); display:flex; align-items:center; gap:6px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                            <label style="font-size:13.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:var(--color-fg); display:flex; align-items:center; gap:6px;">
                                 <span>Select Size</span>
                                 <span style="color:#ff5a3c;">*</span>
                             </label>
-                            <span id="selected-size-status" class="muted" style="font-size:12px; font-weight:600;">Choose a size</span>
+                            <span id="selected-size-status" class="muted" style="font-size:13.5px; font-weight:600;">Choose a size</span>
                         </div>
                         
                         <div class="size-pill-grid" id="size-pill-grid">
@@ -250,8 +313,9 @@ require '../includes/header.php';
                                 </button>
                             <?php } ?>
                         </div>
-                        <div id="size-error-notice" style="display:none; color:#ff9f96; font-size:12px; margin-top:8px; font-weight:600;">
-                            ⚠️ Please pick a size before adding to cart.
+                        <div id="size-error-notice" style="display:none; color:#ff9f96; font-size:13.5px; margin-top:10px; font-weight:700; align-items:center; gap:6px;">
+                            <?= sporti_icon('alert-triangle', 15, 15) ?>
+                            <span>Please pick a size before adding to cart.</span>
                         </div>
                     </div>
                 <?php } ?>
@@ -327,46 +391,81 @@ require '../includes/header.php';
     </div>
 
     <!-- Review Form for eligible users (Purchased + Completed order) -->
-    <?php if ($user_can_review) { 
+    <?php if ($user_can_review && $target_order) { 
         $cur_rating = (int)($user_existing_review['rating'] ?? 5);
+        $target_ref = $target_order['reference_number'] ?? ('SB-' . str_pad($target_order['order_id'], 7, '0', STR_PAD_LEFT));
     ?>
-        <div class="card in" style="padding:1.5rem; margin-bottom:2rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.12); border-radius:12px;">
-            <h3 style="font-size:1.05rem; margin-bottom:0.75rem;">
-                <?= $user_existing_review ? '✏️ Edit Your Athlete Review' : '⭐ Write a Review for this Gear' ?>
-            </h3>
+        <div class="card in" style="padding:1.5rem; margin-bottom:2rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.12); border-radius:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:1rem;">
+                <h3 style="font-size:1.2rem; font-weight:700; margin:0; display:inline-flex; align-items:center; gap:8px;">
+                    <?= $user_existing_review ? icon('edit', '', 18) . ' Edit Your Athlete Review' : icon('star', '', 18) . ' Write a Review for this Gear' ?>
+                </h3>
+                <span class="badge" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); font-size:12px; font-weight:700; padding:4px 10px; font-family:var(--font-mono);">
+                    Order <?= htmlspecialchars($target_ref) ?>
+                    <?php if (!empty($target_order['selected_size'])) { ?>
+                        · Size: <?= htmlspecialchars($target_order['selected_size']) ?>
+                    <?php } ?>
+                </span>
+            </div>
+
+            <?php if (count($eligible_orders) > 1) { ?>
+                <!-- Multi-Order Selector if customer purchased this item multiple times -->
+                <div style="margin-bottom:1.25rem; padding:0.75rem 1rem; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.14); font-size:13px;">
+                    <span class="muted" style="display:block; margin-bottom:8px; font-weight:600;">You purchased this gear across <?= count($eligible_orders) ?> completed orders. Select which order to review:</span>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <?php foreach ($eligible_orders as $e_oid => $e_ord) { 
+                            $e_ref = $e_ord['reference_number'] ?? ('SB-' . str_pad($e_oid, 7, '0', STR_PAD_LEFT));
+                            $is_current = ((int)$target_order['order_id'] === (int)$e_oid);
+                            $has_rev = ($e_ord['review_id'] !== null);
+                        ?>
+                            <a href="detail.php?id=<?= $id ?>&order_id=<?= $e_oid ?>#reviews" style="padding:5px 12px; border-radius:8px; font-size:12px; text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:all 0.15s; font-family:var(--font-mono); <?= $is_current ? 'background:rgba(245,158,11,0.25); color:#fbbf24; border:1px solid rgba(245,158,11,0.6); font-weight:700;' : ($has_rev ? 'background:rgba(255,255,255,0.04); color:#f59e0b; border:1px solid rgba(255,255,255,0.1);' : 'background:rgba(255,255,255,0.06); color:var(--color-fg); border:1px solid rgba(255,255,255,0.15);') ?>">
+                                <span><?= htmlspecialchars($e_ref) ?></span>
+                                <?php if (!empty($e_ord['selected_size'])) { ?><span style="opacity:0.8;">(<?= htmlspecialchars($e_ord['selected_size']) ?>)</span><?php } ?>
+                                <span style="font-size:11px; opacity:0.85; display:inline-flex; align-items:center; gap:3px;">
+                                    <?= $has_rev ? icon('check', '', 12) . ' Reviewed' : icon('star', '', 12) . ' Unreviewed' ?>
+                                </span>
+                            </a>
+                        <?php } ?>
+                    </div>
+                </div>
+            <?php } ?>
+
             <form method="POST" action="detail.php?id=<?= $id ?>" enctype="multipart/form-data" novalidate>
                 <?= csrf_field() ?>
+                <input type="hidden" name="order_id" value="<?= $target_order['order_id'] ?>">
                 
                 <!-- Interactive 5-Star Rating Widget -->
                 <div style="margin-bottom:1.25rem;">
-                    <label class="form-label" style="display:block; margin-bottom:6px;">Your Rating <span style="color:#ff9f96;">*</span></label>
-                    <div id="star-picker" style="display:inline-flex; gap:8px; cursor:pointer; font-size:1.85rem; user-select:none;">
+                    <label class="form-label" style="display:block; margin-bottom:6px; font-size:13px; font-weight:700;">YOUR RATING <span style="color:#ff9f96;">*</span></label>
+                    <div id="star-picker" style="display:inline-flex; gap:8px; cursor:pointer; font-size:2.2rem; user-select:none;">
                         <?php for ($s = 1; $s <= 5; $s++) { ?>
                             <span class="star-btn" data-val="<?= $s ?>" style="color:<?= $s <= $cur_rating ? '#f59e0b' : 'rgba(255,255,255,0.2)' ?>; transition:color 0.15s, transform 0.15s; text-shadow:<?= $s <= $cur_rating ? '0 0 12px rgba(245,158,11,0.5)' : 'none' ?>;">★</span>
                         <?php } ?>
                     </div>
                     <input type="hidden" name="rating" id="review_rating_input" value="<?= $cur_rating ?>">
-                    <span id="rating-label" class="muted" style="font-size:13px; margin-left:12px; font-weight:600; vertical-align:middle;">
+                    <span id="rating-label" class="muted" style="font-size:14.5px; margin-left:14px; font-weight:700; vertical-align:middle;">
                         <?= $cur_rating ?> / 5 Stars
                     </span>
                 </div>
 
                 <div style="margin-bottom:1.25rem;">
-                    <label class="form-label" style="display:block; margin-bottom:6px;">Review Comment <span class="muted" style="font-weight:400; font-size:11px;">(Optional)</span></label>
-                    <textarea name="comment" rows="3" placeholder="Share your experience: performance, durability, fit, packaging..." style="width:100%;"><?= htmlspecialchars($user_existing_review['comment'] ?? '') ?></textarea>
+                    <label class="form-label" style="display:block; margin-bottom:6px; font-size:13px; font-weight:700;">REVIEW COMMENT <span class="muted" style="font-weight:400; font-size:12px;">(OPTIONAL)</span></label>
+                    <textarea name="comment" rows="3" placeholder="Share your experience: performance, durability, fit, packaging..." style="width:100%; font-size:14.5px; line-height:1.6; padding:0.75rem 1rem; border-radius:10px;"><?= htmlspecialchars($user_existing_review['comment'] ?? '') ?></textarea>
                 </div>
 
                 <!-- Optional Multi-Photo Upload (Up to 5 photos) -->
                 <div style="margin-bottom:1.5rem;">
-                    <label class="form-label" style="display:block; margin-bottom:6px;">
-                        Attach Photos <span class="muted" style="font-weight:400; font-size:11px;">(Optional — Up to 5 photos)</span>
+                    <label class="form-label" style="display:block; margin-bottom:6px; font-size:13px; font-weight:700;">
+                        ATTACH PHOTOS <span class="muted" style="font-weight:400; font-size:12px;">(OPTIONAL — UP TO 5 PHOTOS)</span>
                     </label>
                     <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                         <input type="file" name="review_images[]" id="review_photo_input" accept=".jpg,.jpeg,.png,.webp" multiple style="display:none;" onchange="handleReviewFileSelect(this, 'review-photo-preview-box', 'review_photo_name')">
-                        <button type="button" class="btn ghost sm" onclick="document.getElementById('review_photo_input').click();">📷 Choose Photos (Max 5)</button>
-                        <span id="review_photo_name" class="muted" style="font-size:12px;"></span>
+                        <button type="button" class="btn ghost sm" onclick="document.getElementById('review_photo_input').click();" style="display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:700; padding:0.6rem 1.15rem;">
+                            <?= icon('camera', '', 16) ?> CHOOSE PHOTOS (MAX 5)
+                        </button>
+                        <span id="review_photo_name" class="muted" style="font-size:13px;"></span>
                     </div>
-                    <small class="muted" style="font-size:11px; display:block; margin-top:4px;">JPG, PNG, or WEBP (Max 3MB each, up to 5 photos)</small>
+                    <small class="muted" style="font-size:12px; display:block; margin-top:5px;">JPG, PNG, or WEBP (Max 3MB each, up to 5 photos)</small>
                     
                     <!-- Previews of newly selected photos -->
                     <div id="review-photo-preview-box" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;"></div>
@@ -376,20 +475,20 @@ require '../includes/header.php';
                     if ($user_existing_review && !empty($user_existing_review['review_image'])) { 
                         $ex_imgs = parse_review_images($user_existing_review['review_image']);
                         if (!empty($ex_imgs)) { ?>
-                            <div style="margin-top:10px; font-size:11px;" class="muted">
+                            <div style="margin-top:10px; font-size:12px;" class="muted">
                                 <span>Current photos (will be kept unless you choose new ones):</span>
                                 <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;">
                                     <?php foreach ($ex_imgs as $ei) { 
                                         if (file_exists(__DIR__ . '/../images/uploads/' . $ei)) { ?>
-                                            <img src="../images/uploads/<?= htmlspecialchars($ei) ?>" alt="Current Photo" style="width:54px; height:54px; object-fit:cover; border-radius:6px; border:1px solid rgba(255,255,255,0.15);">
+                                            <img src="../images/uploads/<?= htmlspecialchars($ei) ?>" alt="Current Photo" style="width:60px; height:60px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.18);">
                                     <?php } } ?>
                                 </div>
                             </div>
                     <?php } } ?>
                 </div>
 
-                <button type="submit" name="submit_review" class="btn" style="padding:0.75rem 1.75rem; font-size:12px;">
-                    <?= $user_existing_review ? 'Update My Review' : 'Publish Review' ?>
+                <button type="submit" name="submit_review" class="btn" style="padding:0.85rem 2rem; font-size:14px; font-weight:700;">
+                    <?= $user_existing_review ? 'UPDATE MY REVIEW' : 'PUBLISH REVIEW' ?>
                 </button>
             </form>
         </div>
@@ -487,44 +586,53 @@ require '../includes/header.php';
         }
         </script>
     <?php } elseif (!isset($_SESSION['user_id'])) { ?>
-        <div style="padding:1rem 1.25rem; background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.12); border-radius:10px; margin-bottom:2rem; font-size:13px;" class="muted">
-            ℹ️ <a href="../auth/login.php?redirect=item/detail.php?id=<?= $id ?>" style="color:var(--color-accent-on-dark); font-weight:600;">Sign in</a> to leave a review if you have purchased this item.
+        <div style="padding:1.1rem 1.4rem; background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.12); border-radius:12px; margin-bottom:2rem; font-size:14px; display:flex; align-items:center; gap:8px;" class="muted">
+            <span style="color:var(--color-accent-on-dark);"><?= icon('info', '', 16) ?></span>
+            <span><a href="../auth/login.php?redirect=<?= urlencode('item/detail.php?id=' . $id) ?>" style="color:var(--color-accent-on-dark); font-weight:700;">Sign in</a> to leave a review if you have purchased this item.</span>
         </div>
     <?php } else { ?>
-        <div style="padding:1rem 1.25rem; background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.12); border-radius:10px; margin-bottom:2rem; font-size:13px;" class="muted">
-            ℹ️ Verified buyer review requirement: You can write a review once you have purchased and received this gear (Order Status: Completed).
+        <div style="padding:1.1rem 1.4rem; background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.12); border-radius:12px; margin-bottom:2rem; font-size:14px; display:flex; align-items:center; gap:8px;" class="muted">
+            <span style="color:var(--color-accent-on-dark);"><?= icon('info', '', 16) ?></span>
+            <span>Verified buyer review requirement: You can write a review once you have purchased and received this gear (Order Status: Completed).</span>
         </div>
     <?php } ?>
 
     <!-- Reviews List -->
     <?php if (count($reviews) === 0) { ?>
-        <div style="text-align:center; padding:3rem 1rem; background:rgba(255,255,255,0.02); border-radius:12px; border:1px solid rgba(255,255,255,0.06);">
-            <div style="font-size:2rem; margin-bottom:0.5rem;">💬</div>
-            <div style="font-weight:600;">No reviews yet for this product.</div>
-            <p class="muted" style="font-size:13px; margin-top:4px;">Be the first athlete to order and review this gear!</p>
+        <div style="text-align:center; padding:3.5rem 1rem; background:rgba(255,255,255,0.02); border-radius:14px; border:1px solid rgba(255,255,255,0.06);">
+            <div style="margin-bottom:0.75rem; color:var(--color-fg-muted);"><?= icon('message-square', '', 40) ?></div>
+            <div style="font-weight:700; font-size:16px;">No reviews yet for this product.</div>
+            <p class="muted" style="font-size:14px; margin-top:5px;">Be the first athlete to order and review this gear!</p>
         </div>
     <?php } else { ?>
-        <div style="display:flex; flex-direction:column; gap:1rem;">
+        <div style="display:flex; flex-direction:column; gap:1.25rem;">
             <?php foreach ($reviews as $rev) { 
                 // MP4: Regex filter foul words on display
                 $clean_comment = filter_bad_words($rev['comment']);
             ?>
-                <div class="card in" style="padding:1.25rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.07); border-radius:12px;">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem;">
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; background:rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,0.15); flex-shrink:0;">
+                <div class="card in" style="padding:1.35rem 1.5rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.07); border-radius:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.6rem;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="width:42px; height:42px; border-radius:50%; overflow:hidden; background:rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,0.15); flex-shrink:0;">
                                 <?php if (!empty($rev['user_photo']) && file_exists(__DIR__ . '/../images/uploads/' . $rev['user_photo'])) { ?>
                                     <img src="../images/uploads/<?= htmlspecialchars($rev['user_photo']) ?>" alt="Avatar" style="width:100%; height:100%; object-fit:cover;">
                                 <?php } else { ?>
-                                    <span style="font-size:1.1rem;">👤</span>
+                                    <span style="color:var(--color-fg-muted);"><?= icon('user', '', 20) ?></span>
                                 <?php } ?>
                             </div>
                             <div>
-                                <strong style="font-size:13px;"><?= htmlspecialchars($rev['reviewer_name']) ?></strong>
-                                <span class="status-badge" style="background:rgba(81,175,67,0.15); color:#51af43; font-size:10px; margin-left:6px; padding:1px 6px;">
-                                    ✓ Verified Buyer
-                                </span>
-                                <div class="muted" style="font-size:11px; margin-top:2px;">
+                                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    <strong style="font-size:15px; color:#fff;"><?= htmlspecialchars($rev['reviewer_name']) ?></strong>
+                                    <span class="status-badge" style="background:rgba(81,175,67,0.15); color:#51af43; font-size:11.5px; font-weight:700; padding:2px 8px; display:inline-flex; align-items:center; gap:3px;">
+                                        <?= icon('check-circle', '', 12) ?> Verified Buyer
+                                    </span>
+                                    <?php if (!empty($rev['purchased_size'])) { ?>
+                                        <span class="badge" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); font-size:11.5px; font-weight:700; padding:2px 8px;">
+                                            Size: <?= htmlspecialchars($rev['purchased_size']) ?>
+                                        </span>
+                                    <?php } ?>
+                                </div>
+                                <div class="muted" style="font-size:12px; margin-top:3px;">
                                     <?= date('M d, Y', strtotime($rev['created_at'])) ?>
                                     <?php if ($rev['updated_at'] !== $rev['created_at']) { ?>
                                         <span style="opacity:0.6;">(edited)</span>
@@ -532,23 +640,23 @@ require '../includes/header.php';
                                 </div>
                             </div>
                         </div>
-                        <div style="color:#f59e0b; font-size:15px; letter-spacing:1px;">
+                        <div style="color:#f59e0b; font-size:17px; letter-spacing:1px;">
                             <?= str_repeat('★', (int)$rev['rating']) . str_repeat('☆', 5 - (int)$rev['rating']) ?>
                         </div>
                     </div>
                     <?php if ($clean_comment !== '') { ?>
-                        <p style="font-size:13px; line-height:1.6; margin-top:0.5rem; color:#e5e7eb;">
+                        <p style="font-size:15px; line-height:1.65; margin-top:0.75rem; color:#e5e7eb;">
                             <?= nl2br(htmlspecialchars($clean_comment)) ?>
                         </p>
                     <?php } ?>
                     <?php 
                     $rev_imgs = parse_review_images($rev['review_image'] ?? '');
                     if (!empty($rev_imgs)) { ?>
-                        <div style="margin-top:0.85rem; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                        <div style="margin-top:1rem; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                             <?php foreach ($rev_imgs as $r_img) {
                                 if (file_exists(__DIR__ . '/../images/uploads/' . $r_img)) { ?>
                                     <a href="../images/uploads/<?= htmlspecialchars($r_img) ?>" target="_blank" title="Click to view full photo">
-                                        <img src="../images/uploads/<?= htmlspecialchars($r_img) ?>" alt="Customer Review Photo" style="width:78px; height:78px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.18); cursor:zoom-in; transition:transform 0.2s, border-color 0.2s;" onmouseover="this.style.transform='scale(1.06)'; this.style.borderColor='#e0231c';" onmouseout="this.style.transform='scale(1)'; this.style.borderColor='rgba(255,255,255,0.18)';">
+                                        <img src="../images/uploads/<?= htmlspecialchars($r_img) ?>" alt="Customer Review Photo" style="width:84px; height:84px; object-fit:cover; border-radius:10px; border:1px solid rgba(255,255,255,0.18); cursor:zoom-in; transition:transform 0.2s, border-color 0.2s;" onmouseover="this.style.transform='scale(1.06)'; this.style.borderColor='#e0231c';" onmouseout="this.style.transform='scale(1)'; this.style.borderColor='rgba(255,255,255,0.18)';">
                                     </a>
                             <?php } } ?>
                         </div>

@@ -215,10 +215,10 @@ require '../includes/header.php';
             </div>
         </div>
         <div class="admin-topbar-actions">
-            <a href="items.php" class="btn ghost sm">← Back to Items</a>
-            <a href="../item/detail.php?id=<?= $item_id ?>" target="_blank" class="btn ghost sm">View on Store ↗</a>
-            <button class="btn sm" type="button" onclick="document.getElementById('edit-item-form').requestSubmit();" style="box-shadow:0 0 16px rgba(10,132,255,0.35);">
-                💾 Save Changes
+            <a href="items.php" class="btn ghost sm" style="font-size:13px; font-weight:700;">← Back to Items</a>
+            <a href="../item/detail.php?id=<?= $item_id ?>" target="_blank" class="btn ghost sm" style="font-size:13px; font-weight:700;">View on Store ↗</a>
+            <button class="btn sm" type="button" onclick="document.getElementById('edit-item-form').requestSubmit();" style="box-shadow:0 0 16px rgba(10,132,255,0.35); font-size:13px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+                <?= icon('save', '', 15) ?> Save Changes
             </button>
         </div>
     </div>
@@ -242,7 +242,7 @@ require '../includes/header.php';
                         <div>
                             <label class="modern-label">Item Name *</label>
                             <div class="admin-input-wrap">
-                                <input type="text" name="name" class="admin-input bold" value="<?php echo htmlspecialchars($item['name']); ?>" required placeholder="e.g. NIKE Stride T-shirt">
+                                <input type="text" name="name" class="admin-input bold" value="<?php echo htmlspecialchars($item['name']); ?>" placeholder="e.g. NIKE Stride T-shirt">
                             </div>
                         </div>
 
@@ -286,8 +286,8 @@ require '../includes/header.php';
                                 </p>
                             </div>
                             <?php if (count($item_sizes) === 0 && $size_type) { ?>
-                                <button type="submit" name="init_default_sizes" class="btn ghost sm" style="font-size:11px; white-space:nowrap;">
-                                    ⚡ Auto-generate <?= $size_type === 'footwear' ? 'EU Sizes (39-45)' : 'Sizes (XS-2XL)' ?>
+                                <button type="submit" name="init_default_sizes" class="btn ghost sm" style="font-size:13px; font-weight:700; white-space:nowrap; display:inline-flex; align-items:center; gap:6px;">
+                                    <?= sporti_icon('zap', 14, 14) ?> Auto-generate <?= $size_type === 'footwear' ? 'EU Sizes (39-45)' : 'Sizes (XS-2XL)' ?>
                                 </button>
                             <?php } ?>
                         </div>
@@ -375,7 +375,7 @@ require '../includes/header.php';
                             <label class="modern-label" style="color:var(--color-brand-green);">Selling Price (₱) *</label>
                             <div class="price-input-wrap is-selling">
                                 <span class="currency-tag">₱</span>
-                                <input type="number" step="0.01" id="input-price" name="price" class="admin-input price-input" value="<?php echo $item['price']; ?>" oninput="updateProfitMargin()" required>
+                                <input type="number" step="0.01" id="input-price" name="price" class="admin-input price-input" value="<?php echo $item['price']; ?>" oninput="updateProfitMargin()">
                             </div>
                         </div>
                         <div>
@@ -436,7 +436,7 @@ require '../includes/header.php';
                             <?php foreach ($gallery_images as $g) { ?>
                                 <div class="gallery-tile">
                                     <img src="../images/uploads/<?= htmlspecialchars($g['image_path']) ?>" alt="Gallery Photo">
-                                    <button type="submit" name="delete_gallery_image" value="<?= $g['image_id'] ?>" onclick="return confirm('Delete this gallery photo?');" class="gallery-del-btn" title="Delete photo">✕</button>
+                                    <button type="submit" name="delete_gallery_image" value="<?= $g['image_id'] ?>" onclick="return confirm('Delete this gallery photo?');" class="gallery-del-btn" title="Delete photo" style="display:flex; align-items:center; justify-content:center;"><?= icon('x', '', 12) ?></button>
                                 </div>
                             <?php } ?>
                         </div>
@@ -452,8 +452,8 @@ require '../includes/header.php';
 
                 <!-- Card: Save & Action Controls -->
                 <div class="admin-card" style="background:rgba(10,132,255,0.06); border-color:rgba(10,132,255,0.25);">
-                    <button class="btn" style="width:100%; padding:0.95rem; font-size:14px; font-weight:700; box-shadow:0 4px 20px rgba(10,132,255,0.4);" type="submit" name="save">
-                        💾 Save Item Changes
+                    <button class="btn" style="width:100%; padding:0.95rem; font-size:14.5px; font-weight:700; box-shadow:0 4px 20px rgba(10,132,255,0.4); display:inline-flex; align-items:center; justify-content:center; gap:8px;" type="submit" name="save">
+                        <?= icon('save', '', 16) ?> Save Item Changes
                     </button>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
                         <a href="items.php" class="btn ghost sm" style="flex:1; text-align:center;">Cancel</a>
@@ -537,18 +537,19 @@ require '../includes/header.php';
     margin-bottom: 1.25rem;
 }
 .admin-card-title {
-    font-size: 17px;
-    font-weight: 700;
+    font-size: 19px;
+    font-weight: 800;
+    font-family: var(--font-display, sans-serif);
     color: #fff;
     margin: 2px 0 0;
 }
 .modern-label {
     display: block;
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: #a1a4ad;
+    letter-spacing: 0.6px;
+    color: var(--color-fg-secondary);
     margin-bottom: 0.5rem;
 }
 .admin-input-wrap,
@@ -561,20 +562,20 @@ require '../includes/header.php';
 .admin-textarea {
     width: 100% !important;
     background: rgba(16, 18, 24, 0.85) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    border-radius: 10px !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 12px !important;
     color: #fff !important;
     font-family: inherit !important;
-    font-size: 14px !important;
-    padding: 0.8rem 1rem !important;
+    font-size: 15px !important;
+    padding: 0.85rem 1.1rem !important;
     outline: none !important;
     box-sizing: border-box !important;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35) !important;
 }
 .admin-input.bold {
-    font-weight: 600;
-    font-size: 15px !important;
+    font-weight: 700;
+    font-size: 16px !important;
 }
 .admin-input:focus,
 .admin-select:focus,
@@ -648,61 +649,64 @@ require '../includes/header.php';
     font-size: 13px;
 }
 .admin-sizes-table th {
-    padding: 10px 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     text-align: left;
     color: var(--color-muted);
-    font-size: 11px;
+    font-size: 12.5px;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
 }
 .admin-sizes-table td {
-    padding: 10px 12px;
+    padding: 12px 14px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 14.5px;
 }
 .size-qty-input {
-    width: 90px;
-    padding: 6px 10px;
-    font-size: 13px;
+    width: 96px;
+    padding: 8px 12px;
+    font-size: 14.5px;
     text-align: center;
     font-weight: 700;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
     background: rgba(10, 11, 14, 0.7);
     color: #fff;
 }
 .badge-in {
     background: rgba(48, 209, 88, 0.15);
     color: #30d158;
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
 }
 .badge-low {
     background: rgba(255, 180, 50, 0.15);
     color: #ffd166;
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
 }
 .badge-out {
     background: rgba(255, 70, 70, 0.15);
     color: #ff6b6b;
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
 }
 .table-del-btn {
     background: none;
     border: none;
     color: #ff6b6b;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 700;
     text-decoration: underline;
-    opacity: 0.8;
+    opacity: 0.85;
 }
 .table-del-btn:hover {
     opacity: 1;

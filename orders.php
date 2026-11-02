@@ -6,7 +6,7 @@ require_once 'includes/db.php';
 require_once 'includes/functions.php';
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: auth/login.php');
+    header('Location: auth/login.php?redirect=orders.php');
     exit;
 }
 
@@ -43,12 +43,14 @@ if ($conn != null && count($orders) > 0) {
 }
 
 
-// ── Fetch existing reviews by this customer ──────────────────────────────────
+// ── Fetch existing reviews by this customer (keyed by order_id and item_id) ──
 $user_reviews = array();
 if ($conn != null) {
-    $rev_res = mysqli_execute_query($conn, "SELECT item_id, rating, comment, review_image FROM reviews WHERE user_id = ?", array($_SESSION['user_id']));
+    $rev_res = mysqli_execute_query($conn, "SELECT review_id, order_id, item_id, rating, comment, review_image FROM reviews WHERE user_id = ?", array($_SESSION['user_id']));
     while ($rw = mysqli_fetch_assoc($rev_res)) {
-        $user_reviews[$rw['item_id']] = $rw;
+        if (!empty($rw['order_id'])) {
+            $user_reviews[(int)$rw['order_id']][(int)$rw['item_id']] = $rw;
+        }
     }
 }
 
@@ -110,10 +112,12 @@ require 'includes/header.php';
     ?>
 
     <?php if (count($visible) === 0) { ?>
-        <div class="order-empty reveal in">
-            <div class="order-empty-icon">📦</div>
-            <p>No orders in this tab yet.</p>
-            <a class="btn" href="shop.php">Browse the Shop</a>
+        <div class="order-empty reveal in" style="text-align:center; padding:4rem 2rem; border-radius:18px;">
+            <div style="margin-bottom:1rem; color:var(--color-fg-muted); display:flex; justify-content:center;">
+                <?= icon('package', '', 52) ?>
+            </div>
+            <p style="font-size:16px; font-weight:600; color:#fff;">No orders in this tab yet.</p>
+            <a class="btn" href="shop.php" style="margin-top:0.75rem;">Browse the Shop</a>
         </div>
     <?php } ?>
 
@@ -142,30 +146,30 @@ require 'includes/header.php';
                     &nbsp;·&nbsp;
                     <?= ucfirst($o['order_type']) ?>
                     &nbsp;·&nbsp;
-                    <strong style="color:var(--color-fg); font-size:1.05rem;"><?= peso($o['total']) ?></strong>
+                    <strong style="color:#ffffff; font-size:1.35rem; font-family:var(--font-display); font-weight:800;"><?= peso($o['total']) ?></strong>
                 </div>
             </div>
 
             <!-- Single Item Preview Body (Shopee/Lazada style) -->
-            <div class="order-card-body" style="padding:1.25rem 1.5rem; display:flex; gap:1.25rem; align-items:center;">
+            <div class="order-card-body" style="padding:1.35rem 1.75rem; display:flex; gap:1.25rem; align-items:center;">
                 <?php if ($first_item) { ?>
-                    <div style="width:68px; height:68px; flex-shrink:0;">
+                    <div style="width:72px; height:72px; flex-shrink:0;">
                         <?php item_tile($first_item, ''); ?>
                     </div>
                     <div style="flex-grow:1; display:flex; flex-direction:column; gap:4px;">
-                        <span style="font-weight:600; color:var(--color-fg);">
+                        <span style="font-weight:700; color:#fff; font-size:16.5px; font-family:var(--font-display);">
                             <?= htmlspecialchars($first_item['name']) ?>
                             <?php if (!empty($first_item['selected_size'])) { ?>
-                                <span class="badge" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); font-size:10px; padding:1px 6px; margin-left:4px; vertical-align:middle;">
+                                <span class="badge" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.22); font-size:12px; font-weight:700; padding:2px 8px; margin-left:6px; vertical-align:middle;">
                                     Size: <?= htmlspecialchars($first_item['selected_size']) ?>
                                 </span>
                             <?php } ?>
                         </span>
-                        <span class="muted" style="font-size:var(--text-body-sm);">
-                            Qty: <?= $first_item['quantity'] ?> &nbsp;•&nbsp; <?= peso($first_item['price']) ?>
+                        <span class="muted" style="font-size:14.5px; margin-top:2px;">
+                            Qty: <strong style="color:var(--color-accent-on-dark);"><?= $first_item['quantity'] ?></strong> &nbsp;•&nbsp; <strong style="color:#fff;"><?= peso($first_item['price']) ?></strong>
                         </span>
                         <?php if ($more_count > 0) { ?>
-                            <span class="brand-tag" style="font-size:11px; color:var(--color-accent-on-dark); font-weight:600;">
+                            <span class="brand-tag" style="font-size:12px; font-weight:700; color:var(--color-accent-on-dark); margin-top:3px;">
                                 + <?= $more_count ?> more <?= $more_count === 1 ? 'item' : 'items' ?>
                             </span>
                         <?php } ?>
@@ -175,23 +179,27 @@ require 'includes/header.php';
 
             <!-- Actions -->
             <div class="order-card-actions">
-                <a href="order_detail.php?id=<?= $o['order_id'] ?>" class="btn ghost sm">View Details</a>
-                <a href="actions/download_receipt.php?order_id=<?= $o['order_id'] ?>" target="_blank" class="btn ghost sm" style="font-size:11px;">📄 PDF Receipt</a>
+                <a href="order_detail.php?id=<?= $o['order_id'] ?>" class="btn ghost sm" style="font-size:13px; font-weight:700; padding:7px 16px;">View Details</a>
+                <a href="actions/download_receipt.php?order_id=<?= $o['order_id'] ?>" target="_blank" class="btn ghost sm" style="font-size:13px; font-weight:700; padding:7px 16px; display:inline-flex; align-items:center; gap:6px;">
+                    <?= icon('file-text', '', 15) ?>
+                    <span>PDF Receipt</span>
+                </a>
                 
                 <?php if ($o['status'] === 'Completed') { 
                     $items_in_order = $order_items[$o['order_id']] ?? array();
-                    $first_it = $items_in_order[0] ?? null;
-                    if ($first_it) {
-                        $all_reviewed = true;
+                    if (!empty($items_in_order)) {
+                        $order_revs = $user_reviews[$o['order_id']] ?? array();
+                        $unreviewed_items = array();
                         foreach ($items_in_order as $it_chk) {
-                            if (!isset($user_reviews[$it_chk['item_id']])) {
-                                $all_reviewed = false;
-                                break;
+                            if (!isset($order_revs[$it_chk['item_id']])) {
+                                $unreviewed_items[] = $it_chk;
                             }
                         }
+                        $all_reviewed = (count($unreviewed_items) === 0);
+                        $target_it = $all_reviewed ? $items_in_order[0] : $unreviewed_items[0];
                 ?>
-                    <a href="item/detail.php?id=<?= $first_it['item_id'] ?>#reviews" class="btn sm" style="background:rgba(245,158,11,0.2); color:#f59e0b; border:1px solid rgba(245,158,11,0.45); font-size:11px; box-shadow:0 0 10px rgba(245,158,11,0.2);">
-                        <?= $all_reviewed ? '✓ Reviewed (Edit)' : '⭐ Review Gear' ?>
+                    <a href="item/detail.php?id=<?= $target_it['item_id'] ?>&order_id=<?= $o['order_id'] ?>#reviews" class="btn sm" style="<?= $all_reviewed ? 'background:rgba(245,158,11,0.2); color:#f59e0b; border:1px solid rgba(245,158,11,0.45);' : 'background:rgba(245,158,11,0.28); color:#fbbf24; border:1px solid rgba(245,158,11,0.65); font-weight:700; box-shadow:0 0 12px rgba(245,158,11,0.3);' ?> font-size:13px; font-weight:700; padding:7px 16px; display:inline-flex; align-items:center; gap:6px;">
+                        <?= $all_reviewed ? icon('check', '', 14) . ' <span>Reviewed (Edit)</span>' : icon('star', '', 14) . ' <span>Review Gear</span>' ?>
                     </a>
                     <?php } ?>
                 <?php } ?>
@@ -202,13 +210,15 @@ require 'includes/header.php';
                         <input type="hidden" name="order_id" value="<?= $o['order_id'] ?>">
                         <button class="btn sm" type="submit"
                             onclick="return confirm('Confirm that you received this order?')"
-                            style="background:rgba(81,175,67,0.85);box-shadow:0 2px 14px rgba(81,175,67,0.3);">
-                            ✓ Order Received
+                            style="background:rgba(81,175,67,0.85); box-shadow:0 2px 14px rgba(81,175,67,0.3); font-size:13px; font-weight:700; padding:7px 16px; display:inline-flex; align-items:center; gap:6px;">
+                            <?= icon('check-circle', '', 15) ?>
+                            <span>Order Received</span>
                         </button>
                     </form>
                 <?php } elseif ($o['status'] === 'Shipped' || $o['status'] === 'Out for Delivery' || $o['status'] === 'Ready for Pick Up') { ?>
-                    <button class="btn ghost sm" disabled style="opacity:0.6; cursor:not-allowed;" title="Waiting for delivery confirmation">
-                        Waiting for Delivery
+                    <button class="btn ghost sm" disabled style="opacity:0.65; cursor:not-allowed; font-size:13px; font-weight:600; padding:7px 16px; display:inline-flex; align-items:center; gap:6px;" title="Waiting for delivery confirmation">
+                        <?= icon('clock', '', 14) ?>
+                        <span>Waiting for Delivery</span>
                     </button>
                 <?php } ?>
                 <?php if ($can_cancel) { ?>
@@ -217,8 +227,9 @@ require 'includes/header.php';
                         <input type="hidden" name="order_id" value="<?= $o['order_id'] ?>">
                         <button class="btn ghost sm" type="submit"
                             onclick="return confirm('Cancel this order?')"
-                            style="color:#ff9f96;border-color:rgba(255,100,80,0.3);">
-                            Cancel
+                            style="color:#ff9f96; border-color:rgba(255,100,80,0.3); font-size:13px; font-weight:700; padding:7px 16px; display:inline-flex; align-items:center; gap:6px;">
+                            <?= icon('x', '', 14) ?>
+                            <span>Cancel</span>
                         </button>
                     </form>
                 <?php } ?>

@@ -27,17 +27,10 @@ if (mysqli_num_rows($result) != 1) {
 $customer    = mysqli_fetch_assoc($result);
 $customer_id = $customer['customer_id'];
 
-// Check if personal details are filled
+// Check if personal details are filled (name & contact number required for order confirmation)
 if (empty(trim($customer['first_name'] ?? '')) || empty(trim($customer['phone'] ?? ''))) {
     $_SESSION['message'] = 'Please complete your personal details and contact number before checking out.';
     header('Location: profile.php?tab=personal&return=checkout');
-    exit;
-}
-
-// Check if shipping address is filled
-if (empty(trim($customer['address'] ?? ''))) {
-    $_SESSION['message'] = 'Please provide your delivery address before checking out.';
-    header('Location: profile.php?tab=address&return=checkout');
     exit;
 }
 
@@ -238,34 +231,36 @@ require 'includes/header.php';
 
                 <!-- FULFILLMENT METHOD (Shopee segmented switch at very top) -->
                 <div class="checkout-block">
-                    <div class="checkout-block-title">Fulfillment Method</div>
+                    <div class="checkout-block-title" style="font-size:1.15rem; font-weight:700;">Fulfillment Method</div>
                     <div class="fulfillment-options">
                         <label class="fulfillment-option" id="opt-delivery">
                             <input type="radio" name="order_type" value="delivery"
                                 onchange="toggleDelivery(this)"
                                 <?= (!isset($_POST['order_type']) || $_POST['order_type']==='delivery') ? 'checked' : '' ?>>
-                            <div class="fulfillment-icon">🚚</div>
+                            <div class="fulfillment-icon"><?= icon('truck', '', 22) ?></div>
                             <div>
-                                <strong>Delivery</strong>
-                                <p class="muted" style="font-size:12px; margin-top:2px;">Delivered to your doorstep.</p>
+                                <strong style="font-size:15px;">Delivery</strong>
+                                <p class="muted" style="font-size:13px; margin-top:2px;">Delivered to your doorstep.</p>
                             </div>
                         </label>
                         <label class="fulfillment-option" id="opt-pickup">
                             <input type="radio" name="order_type" value="pickup"
                                 onchange="toggleDelivery(this)"
                                 <?= (isset($_POST['order_type']) && $_POST['order_type']==='pickup') ? 'checked' : '' ?>>
-                            <div class="fulfillment-icon">🏪</div>
+                            <div class="fulfillment-icon"><?= icon('store', '', 22) ?></div>
                             <div>
-                                <strong>Store Pick Up</strong>
-                                <p class="muted" style="font-size:12px; margin-top:2px;">Pick up at our store (Free).</p>
+                                <strong style="font-size:15px;">Store Pick Up</strong>
+                                <p class="muted" style="font-size:13px; margin-top:2px;">Pick up at our store (Free).</p>
                             </div>
                         </label>
                     </div>
 
                     <!-- Pickup note notice -->
-                    <div id="pickup-note" style="display:none; margin-top:1.25rem; padding:1rem 1.25rem; border-radius:var(--radius-lg); background:rgba(0, 74, 172, 0.15); border:var(--hairline) solid rgba(111, 155, 224, 0.3);">
-                        <strong style="color:var(--color-fg); font-size:13px;">📍 Pick Up Location &amp; Hours:</strong>
-                        <p class="muted" style="font-size:12px; margin:4px 0 0; line-height:1.5;">
+                    <div id="pickup-note" style="display:none; margin-top:1.25rem; padding:1.1rem 1.35rem; border-radius:var(--radius-lg); background:rgba(0, 74, 172, 0.15); border:var(--hairline) solid rgba(111, 155, 224, 0.3);">
+                        <strong style="color:var(--color-fg); font-size:14.5px; display:inline-flex; align-items:center; gap:6px;">
+                            <?= icon('map-pin', '', 16) ?> Pick Up Location &amp; Hours:
+                        </strong>
+                        <p class="muted" style="font-size:13px; margin:6px 0 0; line-height:1.55;">
                             Sportibai Hub, Ground Floor, Central Mall, Cebu City<br>
                             Open Monday to Saturday: 9:00 AM – 7:00 PM. Please bring your Reference Number.
                         </p>
@@ -347,12 +342,14 @@ require 'includes/header.php';
 
                 <!-- PAYMENT -->
                 <div class="checkout-block">
-                    <div class="checkout-block-title">Payment Method</div>
-                    <div class="cod-badge">
-                        <span style="font-size:1.25rem;">💵</span>
+                    <div class="checkout-block-title" style="font-size:1.15rem; font-weight:700;">Payment Method</div>
+                    <div class="cod-badge" style="padding:1rem 1.25rem;">
+                        <span style="display:flex; align-items:center; justify-content:center; color:var(--color-brand-green);">
+                            <?= icon('banknote', '', 26) ?>
+                        </span>
                         <div>
-                            <strong>Cash on Delivery (COD)</strong>
-                            <p class="muted" style="font-size:12px; margin-top:2px;">Pay in cash when you receive your order.</p>
+                            <strong style="font-size:15px;">Cash on Delivery (COD)</strong>
+                            <p class="muted" style="font-size:13px; margin-top:3px;">Pay in cash when you receive your order.</p>
                         </div>
                     </div>
                 </div>
@@ -366,20 +363,20 @@ require 'includes/header.php';
 
                     <!-- Items list -->
                     <?php foreach ($lines as $line) { ?>
-                        <div class="co-item-row">
+                        <div class="co-item-row" style="gap:12px; align-items:center;">
                             <?php item_tile($line['item'], ''); ?>
                             <div class="co-item-info">
-                                <span style="font-weight:600; line-height:1.3;">
+                                <span style="font-weight:700; font-size:15px; line-height:1.3; color:#fff;">
                                     <?= htmlspecialchars($line['item']['name']) ?>
                                     <?php if (!empty($line['selected_size'])) { ?>
-                                        <span class="badge" style="background:rgba(255,255,255,0.08); color:var(--color-fg); border:1px solid rgba(255,255,255,0.2); font-size:10px; padding:1px 6px; margin-left:4px;">
+                                        <span class="badge" style="background:rgba(255,255,255,0.08); color:var(--color-fg); border:1px solid rgba(255,255,255,0.2); font-size:12px; font-weight:700; padding:2px 7px; margin-left:4px;">
                                             Size: <?= htmlspecialchars($line['selected_size']) ?>
                                         </span>
                                     <?php } ?>
                                 </span>
-                                <span class="muted" style="font-size:var(--text-body-sm);">Qty: <?= $line['qty'] ?></span>
+                                <span class="muted" style="font-size:13.5px; margin-top:3px; display:block;">Qty: <strong style="color:var(--color-fg);"><?= $line['qty'] ?></strong></span>
                             </div>
-                            <span style="font-weight:700; color:var(--color-fg); white-space:nowrap;">
+                            <span style="font-weight:700; font-size:16px; font-family:var(--font-display); color:var(--color-fg); white-space:nowrap;">
                                 <?= peso($line['subtotal']) ?>
                             </span>
                         </div>
@@ -388,20 +385,20 @@ require 'includes/header.php';
                     <div class="co-summary-divider"></div>
 
                     <!-- Totals -->
-                    <div class="co-summary-row">
+                    <div class="co-summary-row" style="font-size:14.5px;">
                         <span class="muted">Subtotal</span>
-                        <span><?= peso($total) ?></span>
+                        <span style="font-weight:600;"><?= peso($total) ?></span>
                     </div>
-                    <div class="co-summary-row">
+                    <div class="co-summary-row" style="font-size:14.5px;">
                         <span class="muted">Shipping</span>
                         <span class="muted">Calculated by seller</span>
                     </div>
-                    <div class="co-summary-row co-grand-total">
+                    <div class="co-summary-row co-grand-total" style="font-size:1.15rem; font-weight:800; border-top:1px solid rgba(255,255,255,0.1); padding-top:0.75rem; margin-top:0.5rem;">
                         <span>Total</span>
-                        <span style="color:var(--color-accent-on-dark);"><?= peso($total) ?></span>
+                        <span style="color:var(--color-brand-green); font-size:1.5rem; font-family:var(--font-display);"><?= peso($total) ?></span>
                     </div>
 
-                    <button class="btn" style="width:100%; margin-top:1.5rem; padding:1rem;" type="submit" name="place_order">
+                    <button class="btn" style="width:100%; margin-top:1.5rem; padding:1.1rem; font-size:15px; font-weight:800; box-shadow:0 0 20px rgba(10,132,255,0.35);" type="submit" name="place_order">
                         Place Order →
                     </button>
                     <p class="muted" style="font-size:11px; text-align:center; margin-top:0.75rem; line-height:1.6;">

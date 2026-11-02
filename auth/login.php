@@ -125,7 +125,10 @@ require __DIR__ . '/../includes/header.php';
             <label class="form-label">Email Address</label>
             <input type="text" name="email" value="<?php echo htmlspecialchars($email_input); ?>" placeholder="e.g. alex@sportibai.com" style="margin-top:0.75rem; <?= isset($errors['email']) ? 'border-color:#ff6b6b;' : '' ?>">
             <?php if (isset($errors['email'])) { ?>
-                <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors['email']) ?></div>
+                <div style="color:#ff9f96; font-size:13px; margin-top:5px; display:flex; align-items:center; gap:5px; font-weight:600;">
+                    <?= icon('alert-triangle', '', 14) ?>
+                    <span><?= htmlspecialchars($errors['email']) ?></span>
+                </div>
             <?php } ?>
         </div>
         
@@ -136,7 +139,10 @@ require __DIR__ . '/../includes/header.php';
             </div>
             <input type="password" name="password" placeholder="••••••••" style="margin-top:0.75rem; <?= isset($errors['password']) ? 'border-color:#ff6b6b;' : '' ?>">
             <?php if (isset($errors['password'])) { ?>
-                <div style="color:#ff9f96; font-size:12px; margin-top:4px;">⚠️ <?= htmlspecialchars($errors['password']) ?></div>
+                <div style="color:#ff9f96; font-size:13px; margin-top:5px; display:flex; align-items:center; gap:5px; font-weight:600;">
+                    <?= icon('alert-triangle', '', 14) ?>
+                    <span><?= htmlspecialchars($errors['password']) ?></span>
+                </div>
             <?php } ?>
         </div>
 

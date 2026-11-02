@@ -81,8 +81,8 @@ require __DIR__ . '/../includes/header.php';
         <?php require __DIR__ . '/../includes/alert.php'; ?>
 
         <?php if (!empty($_SESSION['dev_reset_link'])) { ?>
-            <div class="alert alert-primary" style="word-break:break-all; font-size:13px; line-height:1.5;">
-                <strong>⚡ Test Link (PHPMailer Logged):</strong><br>
+            <div class="alert alert-primary" style="word-break:break-all; font-size:13.5px; line-height:1.5;">
+                <strong style="display:inline-flex; align-items:center; gap:6px;"><?= icon('zap', '', 15) ?> Test Link (PHPMailer Logged):</strong><br>
                 <a href="<?= htmlspecialchars($_SESSION['dev_reset_link']) ?>" style="color:#51af43; font-weight:700;">
                     <?= htmlspecialchars($_SESSION['dev_reset_link']) ?>
                 </a>
