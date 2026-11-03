@@ -150,7 +150,7 @@ $banner = $status_banners[$order['status']] ?? array('title' => $order['status']
                 <h1 style="font-size:var(--text-display-m); margin:0; font-family:var(--font-mono); font-weight:800;">
                     <?= htmlspecialchars($ref) ?>
                 </h1>
-                <button type="button" class="btn ghost sm" onclick="navigator.clipboard.writeText('<?= htmlspecialchars($ref) ?>'); this.innerHTML='<span style=\'color:var(--color-brand-green);\'>Copied!</span>'; setTimeout(() => this.innerHTML='<?= icon('copy', '', 13) ?> Copy Ref', 1500);" style="padding:5px 12px; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+                <button type="button" class="btn ghost sm" onclick="navigator.clipboard.writeText('<?= htmlspecialchars($ref) ?>'); const b=this, o=b.innerHTML; b.innerHTML='<span style=\'color:var(--color-brand-green); font-weight:700;\'>Copied!</span>'; setTimeout(()=>b.innerHTML=o, 1500);" style="padding:5px 12px; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
                     <?= icon('copy', '', 13) ?>
                     <span>Copy Ref</span>
                 </button>
