@@ -1,7 +1,3 @@
-# Ignore local database and mail credentials
-config/db_config.php
-config/mail_config.php
-
 # Ignore logs
 logs/*.log
 

@@ -35,7 +35,7 @@ if (isset($_SESSION['cart'])) $cart_count = array_sum($_SESSION['cart']);
             if ($p_res) $admin_pending_orders = (int)(mysqli_fetch_assoc($p_res)['c'] ?? 0);
         }
     ?>
-        <a class="brand" href="<?= $base ?>admin/index.php">
+        <a class="brand brand-admin" href="<?= $base ?>admin/index.php">
             SPORTI<span class="ops">BAI</span> 
             <span class="admin-badge-chip">ADMIN</span>
         </a>
@@ -52,6 +52,7 @@ if (isset($_SESSION['cart'])) $cart_count = array_sum($_SESSION['cart']);
             <a href="<?= $base ?>admin/sales_report.php" class="<?= $admin_cur_page === 'sales_report.php' ? 'active' : '' ?>">Financials</a>
             <a href="<?= $base ?>admin/expenses.php" class="<?= in_array($admin_cur_page, array('expenses.php','expense_edit.php')) ? 'active' : '' ?>">Expenses</a>
             <a href="<?= $base ?>admin/users.php" class="<?= $admin_cur_page === 'users.php' ? 'active' : '' ?>">Users</a>
+            <span class="admin-nav-divider" aria-hidden="true"></span>
             <a href="<?= $base ?>index.php" target="_blank" title="View Customer Storefront" class="nav-ext-link">Shop ↗</a>
             <a href="<?= $base ?>admin/account.php" class="<?= $admin_cur_page === 'account.php' ? 'active' : '' ?>">Account</a>
             <a href="<?= $base ?>auth/logout.php" class="nav-logout-link">Logout</a>
